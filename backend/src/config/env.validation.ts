@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MinLength,
   validateSync,
 } from 'class-validator';
 
@@ -28,6 +29,20 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   CORS_ORIGIN: string = 'http://localhost:4200';
+
+  @IsString()
+  @MinLength(32)
+  JWT_ACCESS_SECRET!: string;
+
+  @IsString()
+  JWT_ACCESS_EXPIRES_IN: string = '15m';
+
+  @IsString()
+  @MinLength(32)
+  JWT_REFRESH_SECRET!: string;
+
+  @IsString()
+  JWT_REFRESH_EXPIRES_IN: string = '7d';
 }
 
 export function validateEnv(config: Record<string, unknown>) {
