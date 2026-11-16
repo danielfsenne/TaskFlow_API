@@ -23,7 +23,24 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./layout/shell.component').then((m) => m.ShellComponent),
-    children: [],
+    children: [
+      {
+        path: '',
+        title: 'Organizações · TaskFlow',
+        loadComponent: () =>
+          import('./features/organizations/organizations.component').then(
+            (m) => m.OrganizationsComponent,
+          ),
+      },
+      {
+        path: 'orgs/:orgId',
+        title: 'Organização · TaskFlow',
+        loadComponent: () =>
+          import('./features/organizations/organization.component').then(
+            (m) => m.OrganizationComponent,
+          ),
+      },
+    ],
   },
   { path: '**', redirectTo: '' },
 ];

@@ -12,3 +12,9 @@ body {
   font-family: Roboto, 'Helvetica Neue', sans-serif;
   @apply bg-slate-50 text-slate-800;
 }
+
+// O reset de bordas do Tailwind (preflight) desenha uma linha no recorte do
+// rótulo dos campos "outline" do Material; remove só essa borda.
+.mdc-notched-outline__notch {
+  border-right-style: none !important;
+}
