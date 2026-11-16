@@ -4,9 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, Project, Task } from '@prisma/client';
 import { BoardAccessService } from '../boards/board-access.service';
 import { planMove, positionBetween } from '../common/position';
+import { NotificationType } from '../notifications/notification-types';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateTaskDto,
@@ -40,12 +42,28 @@ function present({ assignees, ...task }: TaskWithRelations) {
   };
 }
 
+/** Dados comuns gravados nas notificações sobre uma tarefa. */
+export function taskEventData(
+  task: Pick<Task, 'id' | 'title' | 'boardId'>,
+  project: Pick<Project, 'id' | 'name' | 'organizationId'>,
+) {
+  return {
+    taskId: task.id,
+    taskTitle: task.title,
+    boardId: task.boardId,
+    projectId: project.id,
+    projectName: project.name,
+    organizationId: project.organizationId,
+  };
+}
+
 @Injectable()
 export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly boardAccess: BoardAccessService,
     private readonly taskAccess: TaskAccessService,
+    private readonly notifications: NotificationsProducer,
   ) {}
 
   async create(boardId: string, userId: string, dto: CreateTaskDto) {
@@ -90,6 +108,12 @@ export class TasksService {
       },
       include: taskInclude,
     });
+    this.notifications.notify(
+      NotificationType.TaskAssigned,
+      userId,
+      assigneeIds,
+      taskEventData(task, project),
+    );
     return present(task);
   }
 
@@ -187,8 +211,15 @@ export class TasksService {
 
   /** Substitui a lista de responsáveis; todos precisam ser da organização. */
   async setAssignees(id: string, userId: string, userIds: string[]) {
-    const { project } = await this.taskAccess.getWritable(id, userId);
+    const { project, task } = await this.taskAccess.getWritable(id, userId);
     await this.assertOrgMembers(project.organizationId, userIds);
+
+    const current = await this.prisma.taskAssignee.findMany({
+      where: { taskId: id },
+      select: { userId: true },
+    });
+    const before = new Set(current.map((a) => a.userId));
+    const added = userIds.filter((u) => !before.has(u));
 
     await this.prisma.$transaction([
       this.prisma.taskAssignee.deleteMany({
@@ -200,6 +231,13 @@ export class TasksService {
       }),
     ]);
 
+    // Só quem acabou de entrar na lista é notificado.
+    this.notifications.notify(
+      NotificationType.TaskAssigned,
+      userId,
+      added,
+      taskEventData(task, project),
+    );
     return this.findOne(id, userId);
   }
 

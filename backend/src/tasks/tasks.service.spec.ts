@@ -8,6 +8,8 @@ import { BoardAccessService } from '../boards/board-access.service';
 import { OrganizationAccessService } from '../organizations/organization-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { NotificationType } from '../notifications/notification-types';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { TaskAccessService } from './task-access.service';
 import { TasksService } from './tasks.service';
 
@@ -26,12 +28,17 @@ describe('TasksService', () => {
     },
     boardColumn: { findFirst: jest.fn() },
     organizationMember: { findUnique: jest.fn(), count: jest.fn() },
-    taskAssignee: { deleteMany: jest.fn(), createMany: jest.fn() },
+    taskAssignee: {
+      findMany: jest.fn(),
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
   };
   const boardAccess = {
     getWritableBoard: jest.fn(),
     getBoardAccess: jest.fn(),
   };
+  const notifications = { notify: jest.fn() };
   let service: TasksService;
 
   const project = {
@@ -62,8 +69,47 @@ describe('TasksService', () => {
         p,
         new ProjectAccessService(p, new OrganizationAccessService(p)),
       ),
+      notifications as unknown as NotificationsProducer,
     );
     prisma.task.findUniqueOrThrow.mockResolvedValue(fullTask);
+  });
+
+  describe('notificações de atribuição', () => {
+    it('ao criar, notifica os responsáveis informados', async () => {
+      boardAccess.getWritableBoard.mockResolvedValue({ project });
+      prisma.boardColumn.findFirst.mockResolvedValue({ id: 'c1' });
+      prisma.organizationMember.count.mockResolvedValue(2);
+      prisma.task.create.mockResolvedValue({
+        id: 't9',
+        title: 'Nova',
+        boardId: 'b1',
+        assignees: [],
+      });
+      await service.create('b1', 'u', {
+        title: 'Nova',
+        assigneeIds: ['a', 'b'],
+      });
+      expect(notifications.notify).toHaveBeenCalledWith(
+        NotificationType.TaskAssigned,
+        'u',
+        ['a', 'b'],
+        expect.objectContaining({ taskId: 't9', taskTitle: 'Nova' }),
+      );
+    });
+
+    it('ao redefinir, notifica só quem foi adicionado', async () => {
+      prisma.task.findUnique.mockResolvedValue(storedTask());
+      asMember();
+      prisma.organizationMember.count.mockResolvedValue(2);
+      prisma.taskAssignee.findMany.mockResolvedValue([{ userId: 'a' }]);
+      await service.setAssignees('t1', 'u', ['a', 'b']);
+      expect(notifications.notify).toHaveBeenCalledWith(
+        NotificationType.TaskAssigned,
+        'u',
+        ['b'],
+        expect.objectContaining({ taskId: 't1' }),
+      );
+    });
   });
 
   describe('create', () => {

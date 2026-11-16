@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { OrganizationRole, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
+import { NotificationType } from '../notifications/notification-types';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { PrismaService } from '../prisma/prisma.service';
 import { publicUserSelect } from '../users/users.service';
 import {
@@ -32,6 +34,7 @@ export class OrganizationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: OrganizationAccessService,
+    private readonly notifications: NotificationsProducer,
   ) {}
 
   async create(userId: string, dto: CreateOrganizationDto) {
@@ -114,8 +117,18 @@ export class OrganizationsService {
     try {
       const member = await this.prisma.organizationMember.create({
         data: { organizationId: id, userId: user.id, role: dto.role },
-        select: memberSelect,
+        select: { ...memberSelect, organization: { select: { name: true } } },
       });
+      this.notifications.notify(
+        NotificationType.MemberAdded,
+        actorId,
+        [user.id],
+        {
+          organizationId: id,
+          organizationName: member.organization.name,
+          role: member.role,
+        },
+      );
       return { ...member.user, role: member.role, joinedAt: member.joinedAt };
     } catch (e) {
       if (this.isUniqueViolation(e)) {

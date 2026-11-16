@@ -1,4 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotificationType } from '../notifications/notification-types';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskAccessService } from '../tasks/task-access.service';
 import { CommentsService } from './comments.service';
@@ -6,17 +8,20 @@ import { CommentsService } from './comments.service';
 describe('CommentsService', () => {
   const prisma = {
     comment: {
+      create: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     },
+    taskAssignee: { findMany: jest.fn() },
   };
   const taskAccess = {
     getAccess: jest.fn(),
     getWritable: jest.fn(),
     isManager: jest.fn(),
   };
+  const notifications = { notify: jest.fn() };
   let service: CommentsService;
 
   beforeEach(() => {
@@ -24,6 +29,7 @@ describe('CommentsService', () => {
     service = new CommentsService(
       prisma as unknown as PrismaService,
       taskAccess as unknown as TaskAccessService,
+      notifications as unknown as NotificationsProducer,
     );
     prisma.comment.findUnique.mockResolvedValue({
       id: 'c1',
@@ -31,6 +37,31 @@ describe('CommentsService', () => {
       authorId: 'autor',
     });
     taskAccess.getWritable.mockResolvedValue({});
+  });
+
+  it('notifica o autor da tarefa e os responsáveis', async () => {
+    taskAccess.getWritable.mockResolvedValue({
+      task: { id: 't1', title: 'T', boardId: 'b1', createdById: 'criador' },
+      project: { id: 'p1', name: 'P', organizationId: 'o1' },
+    });
+    prisma.comment.create.mockResolvedValue({
+      id: 'c9',
+      content: 'x'.repeat(300),
+    });
+    prisma.taskAssignee.findMany.mockResolvedValue([
+      { userId: 'resp1' },
+      { userId: 'quem-comenta' },
+    ]);
+
+    await service.create('t1', 'quem-comenta', { content: 'x'.repeat(300) });
+
+    const [type, actor, recipients, data] = notifications.notify.mock.calls[0];
+    expect(type).toBe(NotificationType.TaskCommented);
+    expect(actor).toBe('quem-comenta');
+    // O produtor filtra o próprio autor; aqui só conferimos quem é candidato.
+    expect(recipients).toEqual(['criador', 'resp1', 'quem-comenta']);
+    expect(data).toMatchObject({ taskId: 't1', commentId: 'c9' });
+    expect(data.excerpt.length).toBe(140);
   });
 
   describe('findAll', () => {

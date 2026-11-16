@@ -4,8 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { NotificationType } from '../notifications/notification-types';
+import { NotificationsProducer } from '../notifications/notifications.producer';
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskAccessService } from '../tasks/task-access.service';
+import { taskEventData } from '../tasks/tasks.service';
 import {
   CreateCommentDto,
   ListCommentsQueryDto,
@@ -16,19 +19,45 @@ const commentInclude = {
   author: { select: { id: true, name: true, avatarUrl: true } },
 } satisfies Prisma.CommentInclude;
 
+const EXCERPT_LENGTH = 140;
+
+function excerpt(text: string) {
+  return text.length > EXCERPT_LENGTH
+    ? text.slice(0, EXCERPT_LENGTH - 1) + '…'
+    : text;
+}
+
 @Injectable()
 export class CommentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly taskAccess: TaskAccessService,
+    private readonly notifications: NotificationsProducer,
   ) {}
 
+  /** Avisa o autor da tarefa e os responsáveis (menos quem comentou). */
   async create(taskId: string, userId: string, dto: CreateCommentDto) {
-    await this.taskAccess.getWritable(taskId, userId);
-    return this.prisma.comment.create({
+    const { task, project } = await this.taskAccess.getWritable(taskId, userId);
+    const comment = await this.prisma.comment.create({
       data: { taskId, authorId: userId, content: dto.content },
       include: commentInclude,
     });
+
+    const assignees = await this.prisma.taskAssignee.findMany({
+      where: { taskId },
+      select: { userId: true },
+    });
+    this.notifications.notify(
+      NotificationType.TaskCommented,
+      userId,
+      [task.createdById, ...assignees.map((a) => a.userId)],
+      {
+        ...taskEventData(task, project),
+        commentId: comment.id,
+        excerpt: excerpt(comment.content),
+      },
+    );
+    return comment;
   }
 
   /**
