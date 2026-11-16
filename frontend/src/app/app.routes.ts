@@ -40,6 +40,14 @@ export const routes: Routes = [
             (m) => m.OrganizationComponent,
           ),
       },
+      {
+        path: 'projects/:projectId',
+        title: 'Projeto · TaskFlow',
+        loadComponent: () =>
+          import('./features/projects/project.component').then(
+            (m) => m.ProjectComponent,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
