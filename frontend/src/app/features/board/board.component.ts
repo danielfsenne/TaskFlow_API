@@ -10,11 +10,14 @@ import {
   computed,
   effect,
   inject,
+  Injector,
   input,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -28,6 +31,7 @@ import { UiService } from '../../shared/dialogs';
 import { PRIORITIES, PriorityLabelPipe } from '../../shared/labels';
 import { BoardStore } from './board.store';
 import { TaskCardComponent } from './task-card.component';
+import { TaskDialogComponent } from './task-dialog.component';
 
 @Component({
   selector: 'app-board',
@@ -314,6 +318,12 @@ export class BoardComponent {
   private readonly router = inject(Router);
 
   readonly boardId = input.required<string>();
+  /** ?task=<id> abre o painel da tarefa (ex.: vindo de uma notificação). */
+  readonly taskParam = input<string | undefined>(undefined, { alias: 'task' });
+
+  private readonly dialog = inject(MatDialog);
+  private readonly injector = inject(Injector);
+  private taskDialog: MatDialogRef<TaskDialogComponent> | null = null;
 
   readonly priorities: TaskPriority[] = PRIORITIES;
   readonly addingTo = signal<string | null>(null);
@@ -330,6 +340,14 @@ export class BoardComponent {
         this.ui.error(e);
         await this.router.navigate(['/']);
       });
+    });
+
+    effect(() => {
+      const taskId = this.taskParam();
+      const loaded = !this.store.loading();
+      if (taskId && loaded && this.store.tasks().some((t) => t.id === taskId)) {
+        untracked(() => this.openTask({ id: taskId }));
+      }
     });
   }
 
@@ -356,9 +374,29 @@ export class BoardComponent {
     await this.store.createTask(columnId, title.slice(0, 200));
   }
 
-  openTask(task: Task) {
-    // O painel de detalhes da tarefa entra no próximo passo.
-    void task;
+  openTask(task: Pick<Task, 'id'>) {
+    if (this.taskDialog) return;
+    this.taskDialog = this.dialog.open(TaskDialogComponent, {
+      data: { taskId: task.id },
+      // O injector do quadro dá ao painel acesso à mesma BoardStore.
+      injector: this.injector,
+      width: '900px',
+      maxWidth: '96vw',
+      autoFocus: false,
+    });
+    void this.router.navigate([], {
+      queryParams: { task: task.id },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    this.taskDialog.afterClosed().subscribe(() => {
+      this.taskDialog = null;
+      void this.router.navigate([], {
+        queryParams: { task: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
   }
 
   async addColumn() {

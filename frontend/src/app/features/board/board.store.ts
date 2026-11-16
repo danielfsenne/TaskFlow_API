@@ -254,17 +254,15 @@ export const BoardStore = signalStore(
         }
 
         patchState(store, {
-          tasks: store
-            .tasks()
-            .map((t) =>
-              t.id === taskId
-                ? {
-                    ...t,
-                    columnId: toColumnId,
-                    position: localPosition(prev, next),
-                  }
-                : t,
-            ),
+          tasks: store.tasks().map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  columnId: toColumnId,
+                  position: localPosition(prev, next),
+                }
+              : t,
+          ),
         });
 
         try {
@@ -384,18 +382,16 @@ export const BoardStore = signalStore(
       /** Contador de comentários no card, sem recarregar a tarefa. */
       bumpComments(taskId: string, delta: number) {
         patchState(store, {
-          tasks: store
-            .tasks()
-            .map((t) =>
-              t.id === taskId
-                ? {
-                    ...t,
-                    _count: {
-                      comments: Math.max(0, t._count.comments + delta),
-                    },
-                  }
-                : t,
-            ),
+          tasks: store.tasks().map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  _count: {
+                    comments: Math.max(0, t._count.comments + delta),
+                  },
+                }
+              : t,
+          ),
         });
       },
     };
