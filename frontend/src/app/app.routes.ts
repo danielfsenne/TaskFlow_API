@@ -48,6 +48,14 @@ export const routes: Routes = [
             (m) => m.ProjectComponent,
           ),
       },
+      {
+        path: 'boards/:boardId',
+        title: 'Quadro · TaskFlow',
+        loadComponent: () =>
+          import('./features/board/board.component').then(
+            (m) => m.BoardComponent,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

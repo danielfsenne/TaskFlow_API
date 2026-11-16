@@ -1,5 +1,9 @@
 import { Component, inject, Injectable } from '@angular/core';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -32,7 +36,13 @@ export interface FormDialogResult {
 
 @Component({
   selector: 'app-form-dialog',
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule],
+  imports: [
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+  ],
   template: `
     <h2 mat-dialog-title>{{ data.title }}</h2>
     <form [formGroup]="form" (ngSubmit)="submit()">
@@ -41,26 +51,36 @@ export interface FormDialogResult {
           <mat-label>{{ data.nameLabel ?? 'Nome' }}</mat-label>
           <input matInput formControlName="name" cdkFocusInitial />
           @if (form.controls.name.hasError('minlength')) {
-            <mat-error>Mínimo de {{ data.minLength ?? 2 }} caracteres</mat-error>
+            <mat-error
+              >Mínimo de {{ data.minLength ?? 2 }} caracteres</mat-error
+            >
           }
         </mat-form-field>
         @if (data.withDescription) {
           <mat-form-field appearance="outline">
             <mat-label>Descrição (opcional)</mat-label>
-            <textarea matInput formControlName="description" rows="3"></textarea>
+            <textarea
+              matInput
+              formControlName="description"
+              rows="3"
+            ></textarea>
           </mat-form-field>
         }
       </mat-dialog-content>
       <mat-dialog-actions align="end">
         <button mat-button type="button" mat-dialog-close>Cancelar</button>
-        <button mat-flat-button type="submit">{{ data.submitLabel ?? 'Salvar' }}</button>
+        <button mat-flat-button type="submit">
+          {{ data.submitLabel ?? 'Salvar' }}
+        </button>
       </mat-dialog-actions>
     </form>
   `,
 })
 export class FormDialogComponent {
   readonly data = inject<FormDialogData>(MAT_DIALOG_DATA);
-  private readonly ref = inject(MatDialogRef<FormDialogComponent, FormDialogResult>);
+  private readonly ref = inject(
+    MatDialogRef<FormDialogComponent, FormDialogResult>,
+  );
 
   readonly form = inject(NonNullableFormBuilder).group({
     name: [
@@ -81,7 +101,10 @@ export class FormDialogComponent {
       this.form.markAllAsTouched();
       return;
     }
-    this.ref.close({ name, description: this.form.controls.description.value.trim() });
+    this.ref.close({
+      name,
+      description: this.form.controls.description.value.trim(),
+    });
   }
 }
 
@@ -125,7 +148,9 @@ export class UiService {
 
   form(data: FormDialogData): Promise<FormDialogResult | undefined> {
     return firstValueFrom(
-      this.dialog.open(FormDialogComponent, { data, autoFocus: 'dialog' }).afterClosed(),
+      this.dialog
+        .open(FormDialogComponent, { data, autoFocus: 'dialog' })
+        .afterClosed(),
     );
   }
 

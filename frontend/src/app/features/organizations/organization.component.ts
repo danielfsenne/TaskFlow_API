@@ -1,4 +1,11 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -35,10 +42,16 @@ import { MembersComponent } from './members.component';
         <header class="mb-4 flex items-center justify-between gap-4">
           <div class="min-w-0">
             <h1 class="truncate text-2xl font-semibold">{{ org.name }}</h1>
-            <p class="text-sm text-slate-500">Seu papel: {{ org.role | roleLabel }}</p>
+            <p class="text-sm text-slate-500">
+              Seu papel: {{ org.role | roleLabel }}
+            </p>
           </div>
           @if (isAdmin()) {
-            <button mat-icon-button [matMenuTriggerFor]="orgMenu" aria-label="Opções da organização">
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="orgMenu"
+              aria-label="Opções da organização"
+            >
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #orgMenu="matMenu" xPosition="before">
@@ -47,7 +60,8 @@ import { MembersComponent } from './members.component';
               </button>
               @if (org.role === 'OWNER') {
                 <button mat-menu-item (click)="remove()" class="!text-red-700">
-                  <mat-icon class="!text-red-700">delete</mat-icon>Excluir organização
+                  <mat-icon class="!text-red-700">delete</mat-icon>Excluir
+                  organização
                 </button>
               }
             </mat-menu>
@@ -57,20 +71,33 @@ import { MembersComponent } from './members.component';
         <mat-tab-group animationDuration="0ms" mat-stretch-tabs="false">
           <mat-tab label="Projetos">
             <div class="py-4">
-              <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <mat-slide-toggle [checked]="showArchived()" (change)="showArchived.set($event.checked)">
+              <div
+                class="mb-4 flex flex-wrap items-center justify-between gap-3"
+              >
+                <mat-slide-toggle
+                  [checked]="showArchived()"
+                  (change)="showArchived.set($event.checked)"
+                >
                   Mostrar arquivados
                 </mat-slide-toggle>
                 <button mat-flat-button (click)="createProject()">
-                  <mat-icon>add</mat-icon><span class="hidden sm:inline">Novo projeto</span><span class="sm:hidden">Novo</span>
+                  <mat-icon>add</mat-icon
+                  ><span class="hidden sm:inline">Novo projeto</span
+                  ><span class="sm:hidden">Novo</span>
                 </button>
               </div>
 
               @if (loadingProjects()) {
                 <mat-progress-bar mode="indeterminate" />
               } @else if (projects().length === 0) {
-                <p class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-                  {{ showArchived() ? 'Nenhum projeto arquivado.' : 'Nenhum projeto ainda. Crie o primeiro!' }}
+                <p
+                  class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500"
+                >
+                  {{
+                    showArchived()
+                      ? 'Nenhum projeto arquivado.'
+                      : 'Nenhum projeto ainda. Crie o primeiro!'
+                  }}
                 </p>
               } @else {
                 <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -81,11 +108,14 @@ import { MembersComponent } from './members.component';
                         class="flex h-full flex-col rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:ring-blue-400"
                       >
                         <h2 class="truncate font-medium">{{ p.name }}</h2>
-                        <p class="mt-1 line-clamp-2 flex-1 text-sm text-slate-500">
+                        <p
+                          class="mt-1 line-clamp-2 flex-1 text-sm text-slate-500"
+                        >
                           {{ p.description || 'Sem descrição' }}
                         </p>
                         <p class="mt-3 text-xs text-slate-400">
-                          {{ p._count.boards }} {{ p._count.boards === 1 ? 'quadro' : 'quadros' }} ·
+                          {{ p._count.boards }}
+                          {{ p._count.boards === 1 ? 'quadro' : 'quadros' }} ·
                           criado por {{ p.createdBy.name }}
                         </p>
                       </a>
@@ -156,7 +186,11 @@ export class OrganizationComponent {
     });
     if (!result) return;
     try {
-      const project = await this.api.createProject(this.orgId(), result.name, result.description);
+      const project = await this.api.createProject(
+        this.orgId(),
+        result.name,
+        result.description,
+      );
       await this.router.navigate(['/projects', project.id]);
     } catch (e) {
       this.ui.error(e);
@@ -166,7 +200,11 @@ export class OrganizationComponent {
   async rename() {
     const org = this.org();
     if (!org) return;
-    const result = await this.ui.form({ title: 'Renomear organização', name: org.name, maxLength: 80 });
+    const result = await this.ui.form({
+      title: 'Renomear organização',
+      name: org.name,
+      maxLength: 80,
+    });
     if (!result) return;
     try {
       const updated = await this.api.updateOrganization(org.id, result.name);

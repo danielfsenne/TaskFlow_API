@@ -1,5 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -13,14 +20,25 @@ import { roleAtLeast } from '../../shared/labels';
 
 @Component({
   selector: 'app-project',
-  imports: [DatePipe, RouterLink, MatButtonModule, MatIconModule, MatMenuModule, MatProgressBarModule],
+  imports: [
+    DatePipe,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatProgressBarModule,
+  ],
   template: `
     <div class="mx-auto max-w-5xl p-4 sm:p-8">
       @if (project(); as p) {
         <nav class="mb-2 flex gap-1 text-sm text-slate-500">
           <a routerLink="/" class="hover:underline">Organizações</a>
           <span>/</span>
-          <a [routerLink]="['/orgs', p.organizationId]" class="truncate hover:underline">{{ org()?.name }}</a>
+          <a
+            [routerLink]="['/orgs', p.organizationId]"
+            class="truncate hover:underline"
+            >{{ org()?.name }}</a
+          >
         </nav>
 
         <header class="mb-6 flex items-start justify-between gap-4">
@@ -28,30 +46,44 @@ import { roleAtLeast } from '../../shared/labels';
             <h1 class="flex items-center gap-2 text-2xl font-semibold">
               <span class="truncate">{{ p.name }}</span>
               @if (p.archived) {
-                <span class="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-normal text-amber-800">Arquivado</span>
+                <span
+                  class="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-normal text-amber-800"
+                  >Arquivado</span
+                >
               }
             </h1>
             @if (p.description) {
-              <p class="mt-1 whitespace-pre-line text-sm text-slate-600">{{ p.description }}</p>
+              <p class="mt-1 whitespace-pre-line text-sm text-slate-600">
+                {{ p.description }}
+              </p>
             }
           </div>
           @if (canManage() || isAdmin()) {
-            <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Opções do projeto">
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="menu"
+              aria-label="Opções do projeto"
+            >
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #menu="matMenu" xPosition="before">
               @if (canManage()) {
                 @if (!p.archived) {
-                  <button mat-menu-item (click)="edit()"><mat-icon>edit</mat-icon>Editar</button>
+                  <button mat-menu-item (click)="edit()">
+                    <mat-icon>edit</mat-icon>Editar
+                  </button>
                 }
                 <button mat-menu-item (click)="toggleArchive()">
-                  <mat-icon>{{ p.archived ? 'unarchive' : 'archive' }}</mat-icon>
+                  <mat-icon>{{
+                    p.archived ? 'unarchive' : 'archive'
+                  }}</mat-icon>
                   {{ p.archived ? 'Desarquivar' : 'Arquivar' }}
                 </button>
               }
               @if (isAdmin()) {
                 <button mat-menu-item (click)="remove()" class="!text-red-700">
-                  <mat-icon class="!text-red-700">delete</mat-icon>Excluir projeto
+                  <mat-icon class="!text-red-700">delete</mat-icon>Excluir
+                  projeto
                 </button>
               }
             </mat-menu>
@@ -60,20 +92,26 @@ import { roleAtLeast } from '../../shared/labels';
 
         @if (p.archived) {
           <p class="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
-            Este projeto está arquivado: dá para ver tudo, mas nada pode ser alterado.
+            Este projeto está arquivado: dá para ver tudo, mas nada pode ser
+            alterado.
           </p>
         }
 
         <div class="mb-3 flex items-center justify-between">
           <h2 class="font-medium">Quadros</h2>
           @if (!p.archived) {
-            <button mat-stroked-button (click)="createBoard()"><mat-icon>add</mat-icon>Novo quadro</button>
+            <button mat-stroked-button (click)="createBoard()">
+              <mat-icon>add</mat-icon>Novo quadro
+            </button>
           }
         </div>
 
         @if (boards().length === 0) {
-          <p class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-            Nenhum quadro ainda. Um quadro novo já vem com as colunas "A fazer", "Em andamento" e "Concluído".
+          <p
+            class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500"
+          >
+            Nenhum quadro ainda. Um quadro novo já vem com as colunas "A fazer",
+            "Em andamento" e "Concluído".
           </p>
         } @else {
           <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -88,7 +126,9 @@ import { roleAtLeast } from '../../shared/labels';
                     <h3 class="truncate font-medium">{{ b.name }}</h3>
                   </div>
                   <p class="mt-2 text-xs text-slate-400">
-                    {{ b._count.columns }} colunas · {{ b._count.tasks }} tarefas · criado em {{ b.createdAt | date: 'shortDate' }}
+                    {{ b._count.columns }} colunas ·
+                    {{ b._count.tasks }} tarefas · criado em
+                    {{ b.createdAt | date: 'shortDate' }}
                   </p>
                 </a>
               </li>
@@ -116,7 +156,8 @@ export class ProjectComponent {
   readonly isAdmin = computed(() => roleAtLeast(this.org()?.role, 'ADMIN'));
   /** Mesma regra do backend: criador do projeto ou ADMIN+. */
   readonly canManage = computed(
-    () => this.isAdmin() || this.project()?.createdById === this.auth.user()?.id,
+    () =>
+      this.isAdmin() || this.project()?.createdById === this.auth.user()?.id,
   );
 
   constructor() {
@@ -126,7 +167,10 @@ export class ProjectComponent {
   private async load(id: string) {
     this.project.set(null);
     try {
-      const [project, boards] = await Promise.all([this.api.project(id), this.api.boards(id)]);
+      const [project, boards] = await Promise.all([
+        this.api.project(id),
+        this.api.boards(id),
+      ]);
       this.boards.set(boards);
       this.org.set(await this.api.organization(project.organizationId));
       this.project.set(project);
@@ -137,7 +181,12 @@ export class ProjectComponent {
   }
 
   async createBoard() {
-    const result = await this.ui.form({ title: 'Novo quadro', submitLabel: 'Criar', minLength: 1, maxLength: 80 });
+    const result = await this.ui.form({
+      title: 'Novo quadro',
+      submitLabel: 'Criar',
+      minLength: 1,
+      maxLength: 80,
+    });
     if (!result) return;
     try {
       const board = await this.api.createBoard(this.projectId(), result.name);
@@ -159,7 +208,10 @@ export class ProjectComponent {
     if (!result) return;
     try {
       this.project.set(
-        await this.api.updateProject(p.id, { name: result.name, description: result.description }),
+        await this.api.updateProject(p.id, {
+          name: result.name,
+          description: result.description,
+        }),
       );
     } catch (e) {
       this.ui.error(e);
@@ -170,7 +222,9 @@ export class ProjectComponent {
     const p = this.project();
     if (!p) return;
     try {
-      this.project.set(await this.api.updateProject(p.id, { archived: !p.archived }));
+      this.project.set(
+        await this.api.updateProject(p.id, { archived: !p.archived }),
+      );
       this.ui.toast(p.archived ? 'Projeto desarquivado' : 'Projeto arquivado');
     } catch (e) {
       this.ui.error(e);

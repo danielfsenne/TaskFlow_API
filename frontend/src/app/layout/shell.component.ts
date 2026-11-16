@@ -19,15 +19,25 @@ import { AuthService } from '../core/auth/auth.service';
   ],
   template: `
     <div class="flex h-full flex-col">
-      <mat-toolbar class="!h-14 shrink-0 gap-2 border-b border-slate-200 !bg-white">
-        <a routerLink="/" class="text-lg font-semibold text-slate-900">TaskFlow</a>
+      <mat-toolbar
+        class="!h-14 shrink-0 gap-2 border-b border-slate-200 !bg-white"
+      >
+        <a routerLink="/" class="text-lg font-semibold text-slate-900"
+          >TaskFlow</a
+        >
         <span class="flex-1"></span>
-        <button mat-button [matMenuTriggerFor]="userMenu" class="!text-slate-700">
+        <button
+          mat-button
+          [matMenuTriggerFor]="userMenu"
+          class="!text-slate-700"
+        >
           <mat-icon>account_circle</mat-icon>
           <span class="hidden sm:inline">{{ auth.user()?.name }}</span>
         </button>
         <mat-menu #userMenu="matMenu" xPosition="before">
-          <div class="px-4 py-2 text-xs text-slate-500">{{ auth.user()?.email }}</div>
+          <div class="px-4 py-2 text-xs text-slate-500">
+            {{ auth.user()?.email }}
+          </div>
           <button mat-menu-item (click)="auth.logout()">
             <mat-icon>logout</mat-icon>
             Sair

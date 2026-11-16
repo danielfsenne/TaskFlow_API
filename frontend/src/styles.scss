@@ -18,3 +18,11 @@ body {
 .mdc-notched-outline__notch {
   border-right-style: none !important;
 }
+
+// Campos compactos (filtros da barra do quadro).
+.mat-mdc-form-field.compact {
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 8px;
+  --mdc-outlined-text-field-container-shape: 8px;
+  font-size: 14px;
+}

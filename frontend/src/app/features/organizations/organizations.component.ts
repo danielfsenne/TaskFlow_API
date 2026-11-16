@@ -10,13 +10,21 @@ import { RoleLabelPipe } from '../../shared/labels';
 
 @Component({
   selector: 'app-organizations',
-  imports: [RouterLink, MatButtonModule, MatIconModule, MatProgressBarModule, RoleLabelPipe],
+  imports: [
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressBarModule,
+    RoleLabelPipe,
+  ],
   template: `
     <div class="mx-auto max-w-4xl p-4 sm:p-8">
       <header class="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-semibold">Organizações</h1>
-          <p class="text-sm text-slate-500">Escolha onde trabalhar ou crie uma nova.</p>
+          <p class="text-sm text-slate-500">
+            Escolha onde trabalhar ou crie uma nova.
+          </p>
         </div>
         <button mat-flat-button (click)="create()">
           <mat-icon>add</mat-icon>
@@ -28,9 +36,15 @@ import { RoleLabelPipe } from '../../shared/labels';
       @if (loading()) {
         <mat-progress-bar mode="indeterminate" />
       } @else if (organizations().length === 0) {
-        <div class="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <mat-icon class="!h-10 !w-10 !text-4xl text-slate-400">groups</mat-icon>
-          <h2 class="mt-2 font-medium">Você ainda não participa de nenhuma organização</h2>
+        <div
+          class="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center"
+        >
+          <mat-icon class="!h-10 !w-10 !text-4xl text-slate-400"
+            >groups</mat-icon
+          >
+          <h2 class="mt-2 font-medium">
+            Você ainda não participa de nenhuma organização
+          </h2>
           <p class="mb-4 text-sm text-slate-500">
             Crie a sua ou peça para alguém te adicionar pelo seu e-mail.
           </p>
@@ -46,7 +60,9 @@ import { RoleLabelPipe } from '../../shared/labels';
               >
                 <div class="flex items-center justify-between gap-2">
                   <h2 class="truncate font-medium">{{ org.name }}</h2>
-                  <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                  <span
+                    class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                  >
                     {{ org.role | roleLabel }}
                   </span>
                 </div>

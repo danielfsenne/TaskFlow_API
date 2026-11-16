@@ -1,4 +1,11 @@
-import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  input,
+  OnInit,
+  signal,
+} from '@angular/core';
 import {
   FormGroupDirective,
   NonNullableFormBuilder,
@@ -16,7 +23,12 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { Member, Organization, OrganizationRole } from '../../core/models';
 import { UiService } from '../../shared/dialogs';
-import { InitialsPipe, outranks, RoleLabelPipe, roleAtLeast } from '../../shared/labels';
+import {
+  InitialsPipe,
+  outranks,
+  RoleLabelPipe,
+  roleAtLeast,
+} from '../../shared/labels';
 
 @Component({
   selector: 'app-members',
@@ -39,11 +51,19 @@ import { InitialsPipe, outranks, RoleLabelPipe, roleAtLeast } from '../../shared
         (ngSubmit)="add(formDir)"
         class="mb-4 flex flex-col gap-2 rounded-xl bg-white p-4 ring-1 ring-slate-200 sm:flex-row sm:items-start"
       >
-        <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
+        <mat-form-field
+          appearance="outline"
+          class="flex-1"
+          subscriptSizing="dynamic"
+        >
           <mat-label>E-mail de quem já tem conta</mat-label>
           <input matInput type="email" formControlName="email" />
         </mat-form-field>
-        <mat-form-field appearance="outline" class="sm:w-40" subscriptSizing="dynamic">
+        <mat-form-field
+          appearance="outline"
+          class="sm:w-40"
+          subscriptSizing="dynamic"
+        >
           <mat-label>Papel</mat-label>
           <mat-select formControlName="role">
             @for (r of assignableRoles(); track r) {
@@ -51,14 +71,25 @@ import { InitialsPipe, outranks, RoleLabelPipe, roleAtLeast } from '../../shared
             }
           </mat-select>
         </mat-form-field>
-        <button mat-flat-button type="submit" class="sm:mt-2" [disabled]="adding()">Adicionar</button>
+        <button
+          mat-flat-button
+          type="submit"
+          class="sm:mt-2"
+          [disabled]="adding()"
+        >
+          Adicionar
+        </button>
       </form>
     }
 
-    <ul class="divide-y divide-slate-100 rounded-xl bg-white ring-1 ring-slate-200">
+    <ul
+      class="divide-y divide-slate-100 rounded-xl bg-white ring-1 ring-slate-200"
+    >
       @for (m of members(); track m.id) {
         <li class="flex items-center gap-3 p-3">
-          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-800">
+          <span
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-800"
+          >
             {{ m.name | initials }}
           </span>
           <div class="min-w-0 flex-1">
@@ -70,22 +101,43 @@ import { InitialsPipe, outranks, RoleLabelPipe, roleAtLeast } from '../../shared
             </p>
             <p class="truncate text-xs text-slate-500">{{ m.email }}</p>
           </div>
-          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ m.role | roleLabel }}</span>
+          <span
+            class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+            >{{ m.role | roleLabel }}</span
+          >
 
           @if (canEdit(m) || (m.id === me() && m.role !== 'OWNER')) {
-            <button mat-icon-button [matMenuTriggerFor]="menu" [attr.aria-label]="'Opções de ' + m.name">
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="menu"
+              [attr.aria-label]="'Opções de ' + m.name"
+            >
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #menu="matMenu" xPosition="before">
               @if (canEdit(m)) {
                 @for (r of assignableRoles(); track r) {
                   @if (r !== m.role) {
-                    <button mat-menu-item (click)="changeRole(m, r)">Tornar {{ r | roleLabel }}</button>
+                    <button mat-menu-item (click)="changeRole(m, r)">
+                      Tornar {{ r | roleLabel }}
+                    </button>
                   }
                 }
-                <button mat-menu-item (click)="removeMember(m)" class="!text-red-700">Remover</button>
+                <button
+                  mat-menu-item
+                  (click)="removeMember(m)"
+                  class="!text-red-700"
+                >
+                  Remover
+                </button>
               } @else {
-                <button mat-menu-item (click)="removeMember(m)" class="!text-red-700">Sair da organização</button>
+                <button
+                  mat-menu-item
+                  (click)="removeMember(m)"
+                  class="!text-red-700"
+                >
+                  Sair da organização
+                </button>
               }
             </mat-menu>
           }
@@ -123,7 +175,9 @@ export class MembersComponent implements OnInit {
   }
 
   canEdit(m: Member) {
-    return m.id !== this.me() && this.canManage() && outranks(this.myRole(), m.role);
+    return (
+      m.id !== this.me() && this.canManage() && outranks(this.myRole(), m.role)
+    );
   }
 
   private async load() {
@@ -142,7 +196,11 @@ export class MembersComponent implements OnInit {
     this.adding.set(true);
     try {
       const { email, role } = this.form.getRawValue();
-      const member = await this.api.addMember(this.organization().id, email.trim().toLowerCase(), role);
+      const member = await this.api.addMember(
+        this.organization().id,
+        email.trim().toLowerCase(),
+        role,
+      );
       this.members.update((list) => [...list, member]);
       // resetForm também limpa o estado "enviado", que deixaria o campo vermelho.
       formDir.resetForm({ email: '', role: 'MEMBER' });
@@ -156,8 +214,14 @@ export class MembersComponent implements OnInit {
 
   async changeRole(m: Member, role: OrganizationRole) {
     try {
-      const updated = await this.api.updateMemberRole(this.organization().id, m.id, role);
-      this.members.update((list) => list.map((x) => (x.id === m.id ? updated : x)));
+      const updated = await this.api.updateMemberRole(
+        this.organization().id,
+        m.id,
+        role,
+      );
+      this.members.update((list) =>
+        list.map((x) => (x.id === m.id ? updated : x)),
+      );
     } catch (e) {
       this.ui.error(e);
     }

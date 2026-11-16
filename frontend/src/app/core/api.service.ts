@@ -71,7 +71,8 @@ export class ApiService {
     this.patch<Organization>(`/organizations/${id}`, { name });
   deleteOrganization = (id: string) => this.delete(`/organizations/${id}`);
 
-  members = (orgId: string) => this.get<Member[]>(`/organizations/${orgId}/members`);
+  members = (orgId: string) =>
+    this.get<Member[]>(`/organizations/${orgId}/members`);
   addMember = (orgId: string, email: string, role: OrganizationRole) =>
     this.post<Member>(`/organizations/${orgId}/members`, { email, role });
   updateMemberRole = (orgId: string, userId: string, role: OrganizationRole) =>

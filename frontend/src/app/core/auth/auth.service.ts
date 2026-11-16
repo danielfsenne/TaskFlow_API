@@ -46,7 +46,9 @@ export class AuthService {
     const token = await this.refresh();
     if (!token) return;
     try {
-      this._user.set(await firstValueFrom(this.http.get<User>('/api/v1/users/me')));
+      this._user.set(
+        await firstValueFrom(this.http.get<User>('/api/v1/users/me')),
+      );
     } catch {
       this.clear();
     }

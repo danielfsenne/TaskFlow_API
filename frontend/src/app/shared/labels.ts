@@ -24,10 +24,17 @@ export const PRIORITY_CLASSES: Record<TaskPriority, string> = {
 
 export const PRIORITIES: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 
-const RANK: Record<OrganizationRole, number> = { MEMBER: 1, ADMIN: 2, OWNER: 3 };
-export const roleAtLeast = (role: OrganizationRole | undefined, min: OrganizationRole) =>
-  !!role && RANK[role] >= RANK[min];
-export const outranks = (a: OrganizationRole, b: OrganizationRole) => RANK[a] > RANK[b];
+const RANK: Record<OrganizationRole, number> = {
+  MEMBER: 1,
+  ADMIN: 2,
+  OWNER: 3,
+};
+export const roleAtLeast = (
+  role: OrganizationRole | undefined,
+  min: OrganizationRole,
+) => !!role && RANK[role] >= RANK[min];
+export const outranks = (a: OrganizationRole, b: OrganizationRole) =>
+  RANK[a] > RANK[b];
 
 @Pipe({ name: 'roleLabel' })
 export class RoleLabelPipe implements PipeTransform {
@@ -49,6 +56,9 @@ export class InitialsPipe implements PipeTransform {
   transform(name: string | undefined | null) {
     if (!name) return '?';
     const parts = name.trim().split(/\s+/);
-    return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+    return (
+      (parts[0]?.[0] ?? '') +
+      (parts.length > 1 ? parts[parts.length - 1][0] : '')
+    ).toUpperCase();
   }
 }
