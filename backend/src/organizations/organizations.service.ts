@@ -168,11 +168,20 @@ export class OrganizationsService {
       this.assertOutranks(actor.role, target.role);
     }
 
-    await this.prisma.organizationMember.delete({
-      where: {
-        organizationId_userId: { organizationId: id, userId: targetId },
-      },
-    });
+    // Quem sai da organização deixa de ser responsável pelas tarefas dela.
+    await this.prisma.$transaction([
+      this.prisma.taskAssignee.deleteMany({
+        where: {
+          userId: targetId,
+          task: { board: { project: { organizationId: id } } },
+        },
+      }),
+      this.prisma.organizationMember.delete({
+        where: {
+          organizationId_userId: { organizationId: id, userId: targetId },
+        },
+      }),
+    ]);
   }
 
   private async findMemberOrThrow(organizationId: string, userId: string) {

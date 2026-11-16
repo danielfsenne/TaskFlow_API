@@ -31,3 +31,45 @@ export function needsRebalance(
 export function evenPositions(count: number): number[] {
   return Array.from({ length: count }, (_, i) => (i + 1) * POSITION_STEP);
 }
+
+export interface Positioned {
+  id: string;
+  position: number;
+}
+
+/** Resultado de um movimento: só a nova posição, ou a lista inteira renumerada. */
+export type MovePlan =
+  | { kind: 'single'; position: number }
+  | { kind: 'rebalance'; updates: Positioned[] };
+
+/**
+ * Planeja colocar `movingId` logo depois de `afterId` (null = início) numa
+ * lista que não contém o item movido, ordenada por posição.
+ * Retorna null se `afterId` não estiver na lista.
+ */
+export function planMove(
+  others: Positioned[],
+  afterId: string | null,
+  movingId: string,
+): MovePlan | null {
+  let index = 0;
+  if (afterId !== null) {
+    const afterIndex = others.findIndex((o) => o.id === afterId);
+    if (afterIndex === -1) return null;
+    index = afterIndex + 1;
+  }
+
+  const prev = others[index - 1]?.position ?? null;
+  const next = others[index]?.position ?? null;
+  if (!needsRebalance(prev, next)) {
+    return { kind: 'single', position: positionBetween(prev, next) };
+  }
+
+  const ordered = others.map((o) => o.id);
+  ordered.splice(index, 0, movingId);
+  const positions = evenPositions(ordered.length);
+  return {
+    kind: 'rebalance',
+    updates: ordered.map((id, i) => ({ id, position: positions[i] })),
+  };
+}

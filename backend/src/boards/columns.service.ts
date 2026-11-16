@@ -4,11 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  evenPositions,
-  needsRebalance,
-  positionBetween,
-} from '../common/position';
+import { planMove, positionBetween } from '../common/position';
 import { PrismaService } from '../prisma/prisma.service';
 import { BoardAccessService } from './board-access.service';
 import {
@@ -78,34 +74,24 @@ export class ColumnsService {
         select: { id: true, position: true },
       });
 
-      let index = 0;
-      if (dto.afterColumnId !== null) {
-        const afterIndex = others.findIndex((c) => c.id === dto.afterColumnId);
-        if (afterIndex === -1) {
-          throw new NotFoundException(
-            'Coluna de referência não encontrada neste quadro',
-          );
-        }
-        index = afterIndex + 1;
+      const plan = planMove(others, dto.afterColumnId, id);
+      if (!plan) {
+        throw new NotFoundException(
+          'Coluna de referência não encontrada neste quadro',
+        );
       }
 
-      const prev = others[index - 1]?.position ?? null;
-      const next = others[index]?.position ?? null;
-
-      if (!needsRebalance(prev, next)) {
+      if (plan.kind === 'single') {
         return tx.boardColumn.update({
           where: { id },
-          data: { position: positionBetween(prev, next) },
+          data: { position: plan.position },
         });
       }
 
-      const ordered = others.map((c) => c.id);
-      ordered.splice(index, 0, id);
-      const positions = evenPositions(ordered.length);
-      for (let i = 0; i < ordered.length; i++) {
+      for (const { id: columnId, position } of plan.updates) {
         await tx.boardColumn.update({
-          where: { id: ordered[i] },
-          data: { position: positions[i] },
+          where: { id: columnId },
+          data: { position },
         });
       }
       return tx.boardColumn.findUniqueOrThrow({ where: { id } });
