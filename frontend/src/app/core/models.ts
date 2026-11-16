@@ -123,7 +123,9 @@ export interface CursorPage<T> {
 }
 
 export type NotificationType =
-  'MEMBER_ADDED' | 'TASK_ASSIGNED' | 'TASK_COMMENTED';
+  | 'MEMBER_ADDED'
+  | 'TASK_ASSIGNED'
+  | 'TASK_COMMENTED';
 
 export interface AppNotification {
   id: string;

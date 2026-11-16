@@ -325,6 +325,14 @@ export class TaskDialogComponent implements OnInit {
   private readonly ui = inject(UiService);
   private readonly ref = inject(MatDialogRef<TaskDialogComponent>);
   private readonly data = inject<TaskDialogData>(MAT_DIALOG_DATA);
+  readonly taskId = this.data.taskId;
+
+  /**
+   * Comentários já contados no card (criados ou removidos). O eco do tempo
+   * real chega junto com a resposta HTTP; isso evita contar duas vezes.
+   */
+  private readonly countedCreated = new Set<string>();
+  private readonly countedDeleted = new Set<string>();
 
   readonly priorities = PRIORITIES;
   readonly task = computed(() =>
@@ -379,7 +387,10 @@ export class TaskDialogComponent implements OnInit {
   }
 
   // Comentários vindos do tempo real (chamados pelo quadro).
-  receiveComment(comment: Comment) {
+  /** Retorna true se o comentário ainda não tinha sido contado. */
+  receiveComment(comment: Comment): boolean {
+    const isNew = !this.countedCreated.has(comment.id);
+    this.countedCreated.add(comment.id);
     if (this.comments().some((c) => c.id === comment.id)) {
       this.comments.update((list) =>
         list.map((c) => (c.id === comment.id ? comment : c)),
@@ -388,9 +399,15 @@ export class TaskDialogComponent implements OnInit {
       // Só acrescenta no fim se a lista já está toda carregada.
       this.comments.update((list) => [...list, comment]);
     }
+    return isNew;
   }
-  forgetComment(commentId: string) {
+
+  /** Retorna true se a remoção ainda não tinha sido contada. */
+  forgetComment(commentId: string): boolean {
+    const isNew = !this.countedDeleted.has(commentId);
+    this.countedDeleted.add(commentId);
     this.comments.update((list) => list.filter((c) => c.id !== commentId));
+    return isNew;
   }
 
   startTitle() {
@@ -466,8 +483,7 @@ export class TaskDialogComponent implements OnInit {
     try {
       const comment = await this.api.createComment(this.data.taskId, content);
       this.newComment = '';
-      if (!this.comments().some((c) => c.id === comment.id)) {
-        this.comments.update((list) => [...list, comment]);
+      if (this.receiveComment(comment)) {
         this.store.bumpComments(this.data.taskId, 1);
       }
     } catch (e) {
@@ -516,8 +532,7 @@ export class TaskDialogComponent implements OnInit {
     if (!ok) return;
     try {
       await this.api.deleteComment(c.id);
-      if (this.comments().some((x) => x.id === c.id)) {
-        this.forgetComment(c.id);
+      if (this.forgetComment(c.id)) {
         this.store.bumpComments(this.data.taskId, -1);
       }
     } catch (e) {

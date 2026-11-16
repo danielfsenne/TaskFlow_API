@@ -177,8 +177,24 @@ export const BoardStore = signalStore(
       if (board) await load(board.id).catch(() => undefined);
     };
 
+    /** Recarrega tarefas e colunas sem limpar a tela (ex.: após reconectar). */
+    const refresh = async () => {
+      const board = store.board();
+      if (!board) return;
+      try {
+        const [fresh, tasks] = await Promise.all([
+          api.board(board.id),
+          api.tasks(board.id),
+        ]);
+        patchState(store, { board: fresh, columns: fresh.columns, tasks });
+      } catch {
+        // Sem conexão ainda: a próxima reconexão tenta de novo.
+      }
+    };
+
     return {
       load,
+      refresh,
       upsertTask,
       removeTask,
       upsertColumn,

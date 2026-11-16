@@ -26,7 +26,15 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterLink } from '@angular/router';
-import { BoardColumn, Task, TaskPriority } from '../../core/models';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  BoardColumn,
+  Comment,
+  Positioned,
+  Task,
+  TaskPriority,
+} from '../../core/models';
+import { BoardEvent, RealtimeService } from '../../core/realtime.service';
 import { UiService } from '../../shared/dialogs';
 import { PRIORITIES, PriorityLabelPipe } from '../../shared/labels';
 import { BoardStore } from './board.store';
@@ -322,6 +330,7 @@ export class BoardComponent {
   readonly taskParam = input<string | undefined>(undefined, { alias: 'task' });
 
   private readonly dialog = inject(MatDialog);
+  private readonly realtime = inject(RealtimeService);
   private readonly injector = inject(Injector);
   private taskDialog: MatDialogRef<TaskDialogComponent> | null = null;
 
@@ -342,6 +351,14 @@ export class BoardComponent {
       });
     });
 
+    // Entra na sala do quadro (e sai ao trocar de quadro ou fechar a tela).
+    effect((onCleanup) => {
+      const id = this.boardId();
+      void this.realtime.joinBoard(id);
+      onCleanup(() => this.realtime.leaveBoard(id));
+    });
+    this.listenRealtime();
+
     effect(() => {
       const taskId = this.taskParam();
       const loaded = !this.store.loading();
@@ -349,6 +366,84 @@ export class BoardComponent {
         untracked(() => this.openTask({ id: taskId }));
       }
     });
+  }
+
+  /** Aplica na store o que outras pessoas (ou outras abas) fizeram no quadro. */
+  private listenRealtime() {
+    const rt = this.realtime;
+    const forThisBoard = <T extends BoardEvent>(event: string) =>
+      rt.on<T>(event).pipe(takeUntilDestroyed());
+    const s = this.store;
+
+    forThisBoard<BoardEvent & { task: Task }>('task.created').subscribe((e) =>
+      s.upsertTask(e.task),
+    );
+    forThisBoard<BoardEvent & { task: Task }>('task.updated').subscribe((e) =>
+      s.upsertTask(e.task),
+    );
+    forThisBoard<BoardEvent & { task: Task; positions: Positioned[] }>(
+      'task.moved',
+    ).subscribe((e) => s.applyTaskMove(e.task, e.positions));
+    forThisBoard<BoardEvent & { taskId: string }>('task.deleted').subscribe(
+      (e) => s.removeTask(e.taskId),
+    );
+
+    forThisBoard<BoardEvent & { column: BoardColumn }>(
+      'column.created',
+    ).subscribe((e) => s.upsertColumn(e.column));
+    forThisBoard<BoardEvent & { column: BoardColumn }>(
+      'column.updated',
+    ).subscribe((e) => s.upsertColumn(e.column));
+    forThisBoard<BoardEvent & { positions: Positioned[] }>(
+      'column.moved',
+    ).subscribe((e) => s.applyColumnPositions(e.positions));
+    forThisBoard<BoardEvent & { columnId: string }>('column.deleted').subscribe(
+      (e) => s.removeColumn(e.columnId),
+    );
+
+    forThisBoard<BoardEvent & { board: { id: string; name: string } }>(
+      'board.updated',
+    ).subscribe((e) => {
+      if (e.board.id === s.board()?.id) s.setBoardName(e.board.name);
+    });
+    forThisBoard<BoardEvent & { boardId: string }>('board.deleted').subscribe(
+      (e) => {
+        const board = s.board();
+        if (!board || e.boardId !== board.id) return;
+        if (e.actorId !== s.me())
+          this.ui.toast('Este quadro foi excluído por outra pessoa.');
+        this.dialog.closeAll();
+        void this.router.navigate(['/projects', board.projectId]);
+      },
+    );
+
+    // Comentários: atualizam o painel aberto e o contador do card.
+    const openPanel = (taskId: string) => {
+      const panel = this.taskDialog?.componentInstance;
+      return panel && panel.taskId === taskId ? panel : null;
+    };
+    forThisBoard<BoardEvent & { taskId: string; comment: Comment }>(
+      'comment.created',
+    ).subscribe((e) => {
+      const panel = openPanel(e.taskId);
+      const isNew = panel ? panel.receiveComment(e.comment) : true;
+      if (isNew) s.bumpComments(e.taskId, 1);
+    });
+    forThisBoard<BoardEvent & { taskId: string; comment: Comment }>(
+      'comment.updated',
+    ).subscribe((e) => openPanel(e.taskId)?.receiveComment(e.comment));
+    forThisBoard<BoardEvent & { taskId: string; commentId: string }>(
+      'comment.deleted',
+    ).subscribe((e) => {
+      const panel = openPanel(e.taskId);
+      const isNew = panel ? panel.forgetComment(e.commentId) : true;
+      if (isNew) s.bumpComments(e.taskId, -1);
+    });
+
+    // A conexão caiu e voltou: busca o estado atual para cobrir o que se perdeu.
+    rt.reconnected$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => void s.refresh());
   }
 
   dropColumn(event: CdkDragDrop<BoardColumn[]>) {
