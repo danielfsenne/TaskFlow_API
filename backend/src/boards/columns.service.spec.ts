@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { BoardAccessService } from './board-access.service';
 import { ColumnsService } from './columns.service';
@@ -30,6 +31,7 @@ describe('ColumnsService', () => {
     service = new ColumnsService(
       prisma as unknown as PrismaService,
       access as unknown as BoardAccessService,
+      { toBoard: jest.fn() } as unknown as RealtimeEmitter,
     );
   });
 

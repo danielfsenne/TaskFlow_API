@@ -4,8 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { planMove, positionBetween } from '../common/position';
+import {
+  changedPositions,
+  planMove,
+  positionBetween,
+} from '../common/position';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeEvent } from '../realtime/realtime-events';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { BoardAccessService } from './board-access.service';
 import {
   CreateColumnDto,
@@ -20,6 +26,7 @@ export class ColumnsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: BoardAccessService,
+    private readonly realtime: RealtimeEmitter,
   ) {}
 
   /** Nova coluna entra no fim do quadro. */
@@ -40,18 +47,29 @@ export class ColumnsService {
       );
     }
 
-    return this.prisma.boardColumn.create({
+    const column = await this.prisma.boardColumn.create({
       data: {
         boardId,
         name: dto.name,
         position: positionBetween(last?.position ?? null, null),
       },
     });
+    this.realtime.toBoard(boardId, RealtimeEvent.ColumnCreated, userId, {
+      column,
+    });
+    return column;
   }
 
   async update(id: string, userId: string, dto: UpdateColumnDto) {
-    await this.access.getWritableColumn(id, userId);
-    return this.prisma.boardColumn.update({ where: { id }, data: dto });
+    const { board } = await this.access.getWritableColumn(id, userId);
+    const column = await this.prisma.boardColumn.update({
+      where: { id },
+      data: dto,
+    });
+    this.realtime.toBoard(board.id, RealtimeEvent.ColumnUpdated, userId, {
+      column,
+    });
+    return column;
   }
 
   /**
@@ -67,7 +85,7 @@ export class ColumnsService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const { column, positions } = await this.prisma.$transaction(async (tx) => {
       const others = await tx.boardColumn.findMany({
         where: { boardId: board.id, id: { not: id } },
         orderBy: { position: 'asc' },
@@ -81,26 +99,29 @@ export class ColumnsService {
         );
       }
 
-      if (plan.kind === 'single') {
-        return tx.boardColumn.update({
-          where: { id },
-          data: { position: plan.position },
-        });
-      }
-
-      for (const { id: columnId, position } of plan.updates) {
+      const positions = changedPositions(plan, id);
+      for (const { id: columnId, position } of positions) {
         await tx.boardColumn.update({
           where: { id: columnId },
           data: { position },
         });
       }
-      return tx.boardColumn.findUniqueOrThrow({ where: { id } });
+      const column = await tx.boardColumn.findUniqueOrThrow({
+        where: { id },
+      });
+      return { column, positions };
     });
+
+    this.realtime.toBoard(board.id, RealtimeEvent.ColumnMoved, userId, {
+      columnId: id,
+      positions,
+    });
+    return column;
   }
 
   /** Só remove colunas vazias, para não apagar tarefas por acidente. */
   async remove(id: string, userId: string) {
-    await this.access.getWritableColumn(id, userId);
+    const { board } = await this.access.getWritableColumn(id, userId);
     const tasks = await this.prisma.task.count({ where: { columnId: id } });
     if (tasks > 0) {
       throw new ConflictException(
@@ -108,5 +129,8 @@ export class ColumnsService {
       );
     }
     await this.prisma.boardColumn.delete({ where: { id } });
+    this.realtime.toBoard(board.id, RealtimeEvent.ColumnDeleted, userId, {
+      columnId: id,
+    });
   }
 }

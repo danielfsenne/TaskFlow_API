@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { NotificationType } from '../notifications/notification-types';
 import { NotificationsProducer } from '../notifications/notifications.producer';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskAccessService } from '../tasks/task-access.service';
 import { CommentsService } from './comments.service';
@@ -30,13 +31,14 @@ describe('CommentsService', () => {
       prisma as unknown as PrismaService,
       taskAccess as unknown as TaskAccessService,
       notifications as unknown as NotificationsProducer,
+      { toBoard: jest.fn() } as unknown as RealtimeEmitter,
     );
     prisma.comment.findUnique.mockResolvedValue({
       id: 'c1',
       taskId: 't1',
       authorId: 'autor',
     });
-    taskAccess.getWritable.mockResolvedValue({});
+    taskAccess.getWritable.mockResolvedValue({ task: { boardId: 'b1' } });
   });
 
   it('notifica o autor da tarefa e os responsáveis', async () => {

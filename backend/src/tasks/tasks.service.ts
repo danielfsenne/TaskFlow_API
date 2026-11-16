@@ -6,10 +6,16 @@ import {
 } from '@nestjs/common';
 import { Prisma, Project, Task } from '@prisma/client';
 import { BoardAccessService } from '../boards/board-access.service';
-import { planMove, positionBetween } from '../common/position';
+import {
+  changedPositions,
+  planMove,
+  positionBetween,
+} from '../common/position';
 import { NotificationType } from '../notifications/notification-types';
 import { NotificationsProducer } from '../notifications/notifications.producer';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeEvent } from '../realtime/realtime-events';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import {
   CreateTaskDto,
   ListTasksQueryDto,
@@ -64,6 +70,7 @@ export class TasksService {
     private readonly boardAccess: BoardAccessService,
     private readonly taskAccess: TaskAccessService,
     private readonly notifications: NotificationsProducer,
+    private readonly realtime: RealtimeEmitter,
   ) {}
 
   async create(boardId: string, userId: string, dto: CreateTaskDto) {
@@ -114,7 +121,11 @@ export class TasksService {
       assigneeIds,
       taskEventData(task, project),
     );
-    return present(task);
+    const created = present(task);
+    this.realtime.toBoard(boardId, RealtimeEvent.TaskCreated, userId, {
+      task: created,
+    });
+    return created;
   }
 
   async findAll(boardId: string, userId: string, query: ListTasksQueryDto) {
@@ -148,12 +159,17 @@ export class TasksService {
 
   async update(id: string, userId: string, dto: UpdateTaskDto) {
     await this.taskAccess.getWritable(id, userId);
-    const task = await this.prisma.task.update({
-      where: { id },
-      data: dto,
-      include: taskInclude,
+    const task = present(
+      await this.prisma.task.update({
+        where: { id },
+        data: dto,
+        include: taskInclude,
+      }),
+    );
+    this.realtime.toBoard(task.boardId, RealtimeEvent.TaskUpdated, userId, {
+      task,
     });
-    return present(task);
+    return task;
   }
 
   /**
@@ -175,7 +191,7 @@ export class TasksService {
       throw new NotFoundException('Coluna de destino não encontrada no quadro');
     }
 
-    await this.prisma.$transaction(async (tx) => {
+    const positions = await this.prisma.$transaction(async (tx) => {
       const others = await tx.task.findMany({
         where: { columnId: column.id, id: { not: id } },
         orderBy: { position: 'asc' },
@@ -189,24 +205,24 @@ export class TasksService {
         );
       }
 
-      if (plan.kind === 'single') {
-        await tx.task.update({
-          where: { id },
-          data: { columnId: column.id, position: plan.position },
-        });
-        return;
-      }
-
-      for (const { id: taskId, position } of plan.updates) {
+      const positions = changedPositions(plan, id);
+      for (const { id: taskId, position } of positions) {
         await tx.task.update({
           where: { id: taskId },
           data:
             taskId === id ? { columnId: column.id, position } : { position },
         });
       }
+      return positions;
     });
 
-    return this.findOne(id, userId);
+    const moved = await this.findOne(id, userId);
+    this.realtime.toBoard(task.boardId, RealtimeEvent.TaskMoved, userId, {
+      task: moved,
+      fromColumnId: task.columnId,
+      positions,
+    });
+    return moved;
   }
 
   /** Substitui a lista de responsáveis; todos precisam ser da organização. */
@@ -238,7 +254,11 @@ export class TasksService {
       added,
       taskEventData(task, project),
     );
-    return this.findOne(id, userId);
+    const updated = await this.findOne(id, userId);
+    this.realtime.toBoard(task.boardId, RealtimeEvent.TaskUpdated, userId, {
+      task: updated,
+    });
+    return updated;
   }
 
   /** Excluir: o autor da tarefa, ou quem gerencia o projeto. */
@@ -253,6 +273,12 @@ export class TasksService {
       );
     }
     await this.prisma.task.delete({ where: { id } });
+    this.realtime.toBoard(
+      access.task.boardId,
+      RealtimeEvent.TaskDeleted,
+      userId,
+      { taskId: id, columnId: access.task.columnId },
+    );
   }
 
   private async assertOrgMembers(organizationId: string, userIds: string[]) {

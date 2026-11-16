@@ -42,6 +42,13 @@ export type MovePlan =
   | { kind: 'single'; position: number }
   | { kind: 'rebalance'; updates: Positioned[] };
 
+/** Todas as posições que o movimento altera (para avisar os clientes). */
+export function changedPositions(plan: MovePlan, movingId: string) {
+  return plan.kind === 'single'
+    ? [{ id: movingId, position: plan.position }]
+    : plan.updates;
+}
+
 /**
  * Planeja colocar `movingId` logo depois de `afterId` (null = início) numa
  * lista que não contém o item movido, ordenada por posição.

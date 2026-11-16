@@ -10,6 +10,7 @@ import { randomBytes } from 'crypto';
 import { NotificationType } from '../notifications/notification-types';
 import { NotificationsProducer } from '../notifications/notifications.producer';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { publicUserSelect } from '../users/users.service';
 import {
   AddMemberDto,
@@ -35,6 +36,7 @@ export class OrganizationsService {
     private readonly prisma: PrismaService,
     private readonly access: OrganizationAccessService,
     private readonly notifications: NotificationsProducer,
+    private readonly realtime: RealtimeEmitter,
   ) {}
 
   async create(userId: string, dto: CreateOrganizationDto) {
@@ -195,6 +197,16 @@ export class OrganizationsService {
         },
       }),
     ]);
+
+    // Conexões abertas do ex-membro deixam de receber eventos dos quadros.
+    const boards = await this.prisma.board.findMany({
+      where: { project: { organizationId: id } },
+      select: { id: true },
+    });
+    this.realtime.removeUserFromBoards(
+      targetId,
+      boards.map((b) => b.id),
+    );
   }
 
   private async findMemberOrThrow(organizationId: string, userId: string) {

@@ -1,5 +1,6 @@
 import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { NotificationJob, NotificationType } from './notification-types';
 import { NotificationsProcessor } from './notifications.processor';
 import { NotificationsProducer } from './notifications.producer';
@@ -45,16 +46,20 @@ describe('NotificationsProducer', () => {
 describe('NotificationsProcessor', () => {
   const prisma = {
     user: { findUnique: jest.fn(), findMany: jest.fn() },
-    notification: { createMany: jest.fn() },
+    notification: { createManyAndReturn: jest.fn() },
   };
+  const realtime = { toUser: jest.fn() };
   const processor = new NotificationsProcessor(
     prisma as unknown as PrismaService,
+    realtime as unknown as RealtimeEmitter,
   );
 
   it('grava uma notificação por destinatário existente, com o autor', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'eu', name: 'Eu' });
     prisma.user.findMany.mockResolvedValue([{ id: 'a' }]); // 'b' foi excluído
-    prisma.notification.createMany.mockResolvedValue({ count: 1 });
+    prisma.notification.createManyAndReturn.mockResolvedValue([
+      { id: 'n1', userId: 'a' },
+    ]);
 
     const job = {
       data: {
@@ -66,7 +71,7 @@ describe('NotificationsProcessor', () => {
     } as unknown as Job<NotificationJob>;
 
     await expect(processor.process(job)).resolves.toBe(1);
-    expect(prisma.notification.createMany).toHaveBeenCalledWith({
+    expect(prisma.notification.createManyAndReturn).toHaveBeenCalledWith({
       data: [
         {
           userId: 'a',
@@ -74,6 +79,9 @@ describe('NotificationsProcessor', () => {
           payload: { taskId: 't1', actor: { id: 'eu', name: 'Eu' } },
         },
       ],
+    });
+    expect(realtime.toUser).toHaveBeenCalledWith('a', 'notification.created', {
+      notification: { id: 'n1', userId: 'a' },
     });
   });
 });

@@ -10,6 +10,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
+import { RealtimeCoreModule } from './realtime/realtime-core.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
 
@@ -27,6 +29,7 @@ import { UsersModule } from './users/users.module';
       }),
     }),
     PrismaModule,
+    RealtimeCoreModule,
     HealthModule,
     AuthModule,
     UsersModule,
@@ -36,6 +39,7 @@ import { UsersModule } from './users/users.module';
     BoardsModule,
     TasksModule,
     CommentsModule,
+    RealtimeModule,
   ],
 })
 export class AppModule {}

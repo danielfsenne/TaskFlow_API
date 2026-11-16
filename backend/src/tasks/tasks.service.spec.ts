@@ -6,6 +6,7 @@ import {
 import { OrganizationRole } from '@prisma/client';
 import { BoardAccessService } from '../boards/board-access.service';
 import { OrganizationAccessService } from '../organizations/organization-access.service';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { NotificationType } from '../notifications/notification-types';
@@ -70,6 +71,7 @@ describe('TasksService', () => {
         new ProjectAccessService(p, new OrganizationAccessService(p)),
       ),
       notifications as unknown as NotificationsProducer,
+      { toBoard: jest.fn() } as unknown as RealtimeEmitter,
     );
     prisma.task.findUniqueOrThrow.mockResolvedValue(fullTask);
   });

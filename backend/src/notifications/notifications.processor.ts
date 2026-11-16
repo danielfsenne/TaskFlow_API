@@ -1,12 +1,20 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeEvent } from '../realtime/realtime-events';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { NOTIFICATIONS_QUEUE, NotificationJob } from './notification-types';
 
-/** Worker que grava as notificações enfileiradas, uma linha por destinatário. */
+/**
+ * Worker que grava as notificações enfileiradas, uma linha por destinatário,
+ * e as envia na hora para quem estiver conectado.
+ */
 @Processor(NOTIFICATIONS_QUEUE)
 export class NotificationsProcessor extends WorkerHost {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeEmitter,
+  ) {
     super();
   }
 
@@ -25,9 +33,17 @@ export class NotificationsProcessor extends WorkerHost {
     });
 
     const payload = { ...data, actor };
-    const { count } = await this.prisma.notification.createMany({
+    const created = await this.prisma.notification.createManyAndReturn({
       data: existing.map(({ id }) => ({ userId: id, type, payload })),
     });
-    return count;
+
+    for (const notification of created) {
+      this.realtime.toUser(
+        notification.userId,
+        RealtimeEvent.NotificationCreated,
+        { notification },
+      );
+    }
+    return created.length;
   }
 }

@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import { evenPositions } from '../common/position';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { RealtimeEvent } from '../realtime/realtime-events';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { BoardAccessService } from './board-access.service';
 import {
   CreateBoardDto,
@@ -21,6 +23,7 @@ export class BoardsService {
     private readonly prisma: PrismaService,
     private readonly projectAccess: ProjectAccessService,
     private readonly access: BoardAccessService,
+    private readonly realtime: RealtimeEmitter,
   ) {}
 
   async create(projectId: string, userId: string, dto: CreateBoardDto) {
@@ -61,7 +64,9 @@ export class BoardsService {
 
   async update(id: string, userId: string, dto: UpdateBoardDto) {
     await this.access.getWritableBoard(id, userId);
-    return this.prisma.board.update({ where: { id }, data: dto });
+    const board = await this.prisma.board.update({ where: { id }, data: dto });
+    this.realtime.toBoard(id, RealtimeEvent.BoardUpdated, userId, { board });
+    return board;
   }
 
   /** Excluir um quadro apaga colunas e tarefas: exige gerenciar o projeto. */
@@ -69,5 +74,8 @@ export class BoardsService {
     const access = await this.access.getWritableBoard(id, userId);
     this.projectAccess.assertManager(access, userId);
     await this.prisma.board.delete({ where: { id } });
+    this.realtime.toBoard(id, RealtimeEvent.BoardDeleted, userId, {
+      boardId: id,
+    });
   }
 }
