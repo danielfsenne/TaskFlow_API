@@ -31,7 +31,11 @@ export class ProjectAccessService {
       where: { id: projectId },
     });
     if (!project) throw new NotFoundException('Projeto não encontrado');
+    return this.forProject(project, userId);
+  }
 
+  /** Mesmo que getAccess, para quem já carregou o projeto (quadros, tarefas). */
+  async forProject(project: Project, userId: string): Promise<ProjectAccess> {
     const membership = await this.prisma.organizationMember.findUnique({
       where: {
         organizationId_userId: {
@@ -48,13 +52,17 @@ export class ProjectAccessService {
   /** Gerenciar o projeto: o próprio criador ou ADMIN+ da organização. */
   async assertCanManage(projectId: string, userId: string) {
     const access = await this.getAccess(projectId, userId);
-    const isCreator = access.project.createdById === userId;
+    this.assertManager(access, userId);
+    return access;
+  }
+
+  assertManager({ project, membership }: ProjectAccess, userId: string) {
+    const isCreator = project.createdById === userId;
     const isAdmin =
-      roleRank(access.membership.role) >= roleRank(OrganizationRole.ADMIN);
+      roleRank(membership.role) >= roleRank(OrganizationRole.ADMIN);
     if (!isCreator && !isAdmin) {
       throw new ForbiddenException('Permissão insuficiente neste projeto');
     }
-    return access;
   }
 
   /** Exige um papel mínimo na organização do projeto. */

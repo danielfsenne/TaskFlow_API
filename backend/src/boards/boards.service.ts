@@ -1,0 +1,73 @@
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { evenPositions } from '../common/position';
+import { PrismaService } from '../prisma/prisma.service';
+import { ProjectAccessService } from '../projects/project-access.service';
+import { BoardAccessService } from './board-access.service';
+import {
+  CreateBoardDto,
+  DEFAULT_COLUMNS,
+  UpdateBoardDto,
+} from './dto/board.dto';
+
+const columnsOrdered = {
+  orderBy: { position: 'asc' },
+  include: { _count: { select: { tasks: true } } },
+} satisfies Prisma.Board$columnsArgs;
+
+@Injectable()
+export class BoardsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly projectAccess: ProjectAccessService,
+    private readonly access: BoardAccessService,
+  ) {}
+
+  async create(projectId: string, userId: string, dto: CreateBoardDto) {
+    const { project } = await this.projectAccess.getAccess(projectId, userId);
+    this.projectAccess.assertNotArchived(project);
+
+    const names = dto.columns ?? DEFAULT_COLUMNS;
+    const positions = evenPositions(names.length);
+
+    return this.prisma.board.create({
+      data: {
+        projectId,
+        name: dto.name,
+        columns: {
+          create: names.map((name, i) => ({ name, position: positions[i] })),
+        },
+      },
+      include: { columns: columnsOrdered },
+    });
+  }
+
+  async findAll(projectId: string, userId: string) {
+    await this.projectAccess.getAccess(projectId, userId);
+    return this.prisma.board.findMany({
+      where: { projectId },
+      include: { _count: { select: { columns: true, tasks: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async findOne(id: string, userId: string) {
+    await this.access.getBoardAccess(id, userId);
+    return this.prisma.board.findUniqueOrThrow({
+      where: { id },
+      include: { columns: columnsOrdered },
+    });
+  }
+
+  async update(id: string, userId: string, dto: UpdateBoardDto) {
+    await this.access.getWritableBoard(id, userId);
+    return this.prisma.board.update({ where: { id }, data: dto });
+  }
+
+  /** Excluir um quadro apaga colunas e tarefas: exige gerenciar o projeto. */
+  async remove(id: string, userId: string) {
+    const access = await this.access.getWritableBoard(id, userId);
+    this.projectAccess.assertManager(access, userId);
+    await this.prisma.board.delete({ where: { id } });
+  }
+}
