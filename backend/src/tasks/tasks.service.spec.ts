@@ -8,6 +8,7 @@ import { BoardAccessService } from '../boards/board-access.service';
 import { OrganizationAccessService } from '../organizations/organization-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { TaskAccessService } from './task-access.service';
 import { TasksService } from './tasks.service';
 
 describe('TasksService', () => {
@@ -56,8 +57,11 @@ describe('TasksService', () => {
     const p = prisma as unknown as PrismaService;
     service = new TasksService(
       p,
-      new ProjectAccessService(p, new OrganizationAccessService(p)),
       boardAccess as unknown as BoardAccessService,
+      new TaskAccessService(
+        p,
+        new ProjectAccessService(p, new OrganizationAccessService(p)),
+      ),
     );
     prisma.task.findUniqueOrThrow.mockResolvedValue(fullTask);
   });

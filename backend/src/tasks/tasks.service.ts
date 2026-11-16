@@ -4,20 +4,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, Task } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { BoardAccessService } from '../boards/board-access.service';
 import { planMove, positionBetween } from '../common/position';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  ProjectAccess,
-  ProjectAccessService,
-} from '../projects/project-access.service';
 import {
   CreateTaskDto,
   ListTasksQueryDto,
   MoveTaskDto,
   UpdateTaskDto,
 } from './dto/task.dto';
+import { TaskAccessService } from './task-access.service';
 
 const userSummary = { select: { id: true, name: true, avatarUrl: true } };
 
@@ -43,16 +40,12 @@ function present({ assignees, ...task }: TaskWithRelations) {
   };
 }
 
-interface TaskAccess extends ProjectAccess {
-  task: Task;
-}
-
 @Injectable()
 export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly projectAccess: ProjectAccessService,
     private readonly boardAccess: BoardAccessService,
+    private readonly taskAccess: TaskAccessService,
   ) {}
 
   async create(boardId: string, userId: string, dto: CreateTaskDto) {
@@ -121,7 +114,7 @@ export class TasksService {
   }
 
   async findOne(id: string, userId: string) {
-    await this.getAccess(id, userId);
+    await this.taskAccess.getAccess(id, userId);
     const task = await this.prisma.task.findUniqueOrThrow({
       where: { id },
       include: taskInclude,
@@ -130,7 +123,7 @@ export class TasksService {
   }
 
   async update(id: string, userId: string, dto: UpdateTaskDto) {
-    await this.getWritable(id, userId);
+    await this.taskAccess.getWritable(id, userId);
     const task = await this.prisma.task.update({
       where: { id },
       data: dto,
@@ -144,7 +137,7 @@ export class TasksService {
    * Serve tanto para reordenar na mesma coluna quanto para trocar de coluna.
    */
   async move(id: string, userId: string, dto: MoveTaskDto) {
-    const { task } = await this.getWritable(id, userId);
+    const { task } = await this.taskAccess.getWritable(id, userId);
     if (dto.afterTaskId === id) {
       throw new BadRequestException(
         'Uma tarefa não pode ficar abaixo de si mesma',
@@ -194,7 +187,7 @@ export class TasksService {
 
   /** Substitui a lista de responsáveis; todos precisam ser da organização. */
   async setAssignees(id: string, userId: string, userIds: string[]) {
-    const { project } = await this.getWritable(id, userId);
+    const { project } = await this.taskAccess.getWritable(id, userId);
     await this.assertOrgMembers(project.organizationId, userIds);
 
     await this.prisma.$transaction([
@@ -212,45 +205,16 @@ export class TasksService {
 
   /** Excluir: o autor da tarefa, ou quem gerencia o projeto. */
   async remove(id: string, userId: string) {
-    const access = await this.getWritable(id, userId);
-    if (access.task.createdById !== userId) {
-      try {
-        this.projectAccess.assertManager(access, userId);
-      } catch {
-        throw new ForbiddenException(
-          'Só o autor da tarefa ou quem gerencia o projeto pode excluí-la',
-        );
-      }
+    const access = await this.taskAccess.getWritable(id, userId);
+    if (
+      access.task.createdById !== userId &&
+      !this.taskAccess.isManager(access, userId)
+    ) {
+      throw new ForbiddenException(
+        'Só o autor da tarefa ou quem gerencia o projeto pode excluí-la',
+      );
     }
     await this.prisma.task.delete({ where: { id } });
-  }
-
-  private async getAccess(id: string, userId: string): Promise<TaskAccess> {
-    const found = await this.prisma.task.findUnique({
-      where: { id },
-      include: { board: { include: { project: true } } },
-    });
-    if (!found) throw new NotFoundException('Tarefa não encontrada');
-
-    const {
-      board: { project },
-      ...task
-    } = found;
-    try {
-      const access = await this.projectAccess.forProject(project, userId);
-      return { ...access, task };
-    } catch (e) {
-      if (e instanceof NotFoundException) {
-        throw new NotFoundException('Tarefa não encontrada');
-      }
-      throw e;
-    }
-  }
-
-  private async getWritable(id: string, userId: string) {
-    const access = await this.getAccess(id, userId);
-    this.projectAccess.assertNotArchived(access.project);
-    return access;
   }
 
   private async assertOrgMembers(organizationId: string, userIds: string[]) {
