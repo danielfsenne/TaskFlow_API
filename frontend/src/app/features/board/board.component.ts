@@ -328,7 +328,6 @@ export class BoardComponent {
   private readonly router = inject(Router);
 
   readonly boardId = input.required<string>();
-  /** ?task=<id> abre o painel da tarefa (ex.: vindo de uma notificação). */
   readonly taskParam = input<string | undefined>(undefined, { alias: 'task' });
 
   private readonly dialog = inject(MatDialog);
@@ -343,7 +342,6 @@ export class BoardComponent {
   readonly taskListIds = computed(() =>
     this.store.sortedColumns().map((c) => c.id),
   );
-  /** Mesma regra do backend: a última coluna (com 2+ colunas) é a de concluídas. */
   readonly doneColumnId = computed(() => {
     const cols = this.store.sortedColumns();
     return cols.length >= 2 ? cols[cols.length - 1].id : null;
@@ -363,7 +361,6 @@ export class BoardComponent {
       });
     });
 
-    // Entra na sala do quadro (e sai ao trocar de quadro ou fechar a tela).
     effect((onCleanup) => {
       const id = this.boardId();
       void this.realtime.joinBoard(id);
@@ -380,7 +377,6 @@ export class BoardComponent {
     });
   }
 
-  /** Aplica na store o que outras pessoas (ou outras abas) fizeram no quadro. */
   private listenRealtime() {
     const rt = this.realtime;
     const forThisBoard = <T extends BoardEvent>(event: string) =>
@@ -429,7 +425,6 @@ export class BoardComponent {
       },
     );
 
-    // Comentários: atualizam o painel aberto e o contador do card.
     const openPanel = (taskId: string) => {
       const panel = this.taskDialog?.componentInstance;
       return panel && panel.taskId === taskId ? panel : null;
@@ -452,7 +447,6 @@ export class BoardComponent {
       if (isNew) s.bumpComments(e.taskId, -1);
     });
 
-    // A conexão caiu e voltou: busca o estado atual para cobrir o que se perdeu.
     rt.reconnected$
       .pipe(takeUntilDestroyed())
       .subscribe(() => void s.refresh());
@@ -485,7 +479,7 @@ export class BoardComponent {
     if (this.taskDialog) return;
     this.taskDialog = this.dialog.open(TaskDialogComponent, {
       data: { taskId: task.id },
-      // O injector do quadro dá ao painel acesso à mesma BoardStore.
+      // mesma BoardStore do quadro
       injector: this.injector,
       width: '900px',
       maxWidth: '96vw',

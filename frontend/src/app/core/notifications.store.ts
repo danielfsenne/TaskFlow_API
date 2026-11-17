@@ -26,7 +26,6 @@ const initialState: NotificationsState = {
   loaded: false,
 };
 
-/** Notificações do usuário logado: carrega ao entrar e recebe novas ao vivo. */
 export const NotificationsStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
@@ -42,7 +41,7 @@ export const NotificationsStore = signalStore(
           loaded: true,
         });
       } catch {
-        // Silencioso: o sino só fica sem lista até a próxima tentativa.
+        // o sino fica vazio até a próxima tentativa
       }
     },
 
@@ -72,7 +71,6 @@ export const NotificationsStore = signalStore(
     async markRead(id: string) {
       const n = store.items().find((x) => x.id === id);
       if (!n || n.readAt) return;
-      // Otimista: o sino responde na hora.
       patchState(store, {
         items: store
           .items()
@@ -117,8 +115,7 @@ export const NotificationsStore = signalStore(
         const loggedIn = auth.isAuthenticated();
         untracked(() => (loggedIn ? void store.load() : store.reset()));
       });
-      // Ao conectar o socket, recarrega: cobre notificações gravadas entre o
-      // login e a conexão, que não chegariam pelo tempo real.
+      // pega o que chegou entre o login e a conexão do socket
       effect(() => {
         if (realtime.connected()) untracked(() => void store.load());
       });
@@ -126,7 +123,6 @@ export const NotificationsStore = signalStore(
         .on<{ notification: AppNotification }>('notification.created')
         .pipe(takeUntilDestroyed())
         .subscribe(({ notification }) => store.receive(notification));
-      // Ao reconectar, sincroniza o que pode ter chegado com a conexão fora.
       realtime.reconnected$
         .pipe(takeUntilDestroyed())
         .subscribe(() => void store.load());

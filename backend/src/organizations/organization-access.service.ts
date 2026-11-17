@@ -16,10 +16,6 @@ export function roleRank(role: OrganizationRole) {
   return ROLE_RANK[role];
 }
 
-/**
- * Centraliza as checagens de acesso a uma organização.
- * Quem não é membro recebe 404, para não revelar que a organização existe.
- */
 @Injectable()
 export class OrganizationAccessService {
   constructor(private readonly prisma: PrismaService) {}

@@ -3,7 +3,6 @@ import { Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { AuthService } from './auth/auth.service';
 
-/** Envelope dos eventos de quadro: todos trazem quem fez a alteração. */
 export interface BoardEvent {
   actorId: string;
   [key: string]: unknown;
@@ -11,11 +10,6 @@ export interface BoardEvent {
 
 type Ack = { ok: true } | { ok: false; error: string };
 
-/**
- * Conexão única com o namespace /realtime do backend.
- * Conecta ao entrar, desconecta ao sair, renova o token quando o servidor
- * avisa que a sessão expirou e volta a entrar nas salas após reconectar.
- */
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
   private readonly auth = inject(AuthService);
@@ -28,7 +22,6 @@ export class RealtimeService {
   private renewing = false;
 
   readonly connected = signal(false);
-  /** Emite quando a conexão volta depois de cair (pode ter perdido eventos). */
   readonly reconnected$ = this.reconnects.asObservable();
 
   constructor() {
@@ -60,7 +53,7 @@ export class RealtimeService {
   private connect() {
     if (this.socket) return;
     const socket = io('/realtime', {
-      // Função: a cada (re)conexão usa o token mais recente.
+      // função: cada reconexão pega o token atual
       auth: (cb) => cb({ token: this.auth.accessToken() }),
       transports: ['websocket'],
     });
@@ -93,7 +86,6 @@ export class RealtimeService {
     this.connected.set(false);
   }
 
-  /** Token venceu: renova pelo refresh token e reconecta. */
   private async renewAndReconnect() {
     if (this.renewing || !this.socket) return;
     this.renewing = true;

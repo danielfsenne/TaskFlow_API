@@ -38,7 +38,6 @@ export class CommentsService {
     private readonly realtime: RealtimeEmitter,
   ) {}
 
-  /** Avisa o autor da tarefa e os responsáveis (menos quem comentou). */
   async create(taskId: string, userId: string, dto: CreateCommentDto) {
     const { task, project } = await this.taskAccess.getWritable(taskId, userId);
     const comment = await this.prisma.comment.create({
@@ -67,10 +66,6 @@ export class CommentsService {
     return comment;
   }
 
-  /**
-   * Comentários em ordem cronológica, paginados por cursor.
-   * `nextCursor` é null quando não há mais páginas.
-   */
   async findAll(taskId: string, userId: string, query: ListCommentsQueryDto) {
     await this.taskAccess.getAccess(taskId, userId);
 
@@ -90,7 +85,6 @@ export class CommentsService {
     };
   }
 
-  /** Editar: só o autor. */
   async update(id: string, userId: string, dto: UpdateCommentDto) {
     const comment = await this.findWritable(id, userId);
     if (comment.authorId !== userId) {
@@ -110,7 +104,6 @@ export class CommentsService {
     return updated;
   }
 
-  /** Excluir: o autor, ou quem gerencia o projeto (moderação). */
   async remove(id: string, userId: string) {
     const comment = await this.findWritable(id, userId);
     if (

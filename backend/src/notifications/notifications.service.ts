@@ -6,7 +6,6 @@ import { ListNotificationsQueryDto } from './dto/notification.dto';
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Mais recentes primeiro, paginadas por cursor. */
   async findAll(userId: string, query: ListNotificationsQueryDto) {
     const [items, unreadCount] = await Promise.all([
       this.prisma.notification.findMany({
@@ -31,7 +30,6 @@ export class NotificationsService {
     return this.prisma.notification.count({ where: { userId, readAt: null } });
   }
 
-  /** Marca uma notificação como lida; idempotente. */
   async markRead(id: string, userId: string) {
     const notification = await this.prisma.notification.findFirst({
       where: { id, userId },

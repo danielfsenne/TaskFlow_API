@@ -101,7 +101,6 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  /** Query params, via withComponentInputBinding. */
   readonly returnUrl = input<string>();
   readonly expired = input<string>();
 
@@ -132,7 +131,7 @@ export class LoginComponent {
   }
 }
 
-/** Só aceita caminhos internos, para não virar redirecionamento aberto. */
+// só caminhos internos (evita redirecionamento aberto)
 export function safeReturnUrl(url: string | undefined): string {
   return url && url.startsWith('/') && !url.startsWith('//') ? url : '/';
 }

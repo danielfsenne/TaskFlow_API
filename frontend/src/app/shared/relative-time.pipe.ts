@@ -1,7 +1,6 @@
 import { formatDate } from '@angular/common';
 import { inject, LOCALE_ID, Pipe, PipeTransform } from '@angular/core';
 
-/** "agora", "há 5 min", "há 3 h", "ontem", depois a data. */
 @Pipe({ name: 'relativeTime' })
 export class RelativeTimePipe implements PipeTransform {
   private readonly locale = inject(LOCALE_ID);

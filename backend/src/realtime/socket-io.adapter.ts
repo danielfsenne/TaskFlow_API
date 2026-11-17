@@ -2,7 +2,6 @@ import { INestApplicationContext } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ServerOptions } from 'socket.io';
 
-/** Aplica ao Socket.IO o mesmo CORS da API HTTP (lido do ambiente). */
 export class ConfiguredIoAdapter extends IoAdapter {
   constructor(
     app: INestApplicationContext,

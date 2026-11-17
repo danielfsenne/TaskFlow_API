@@ -74,7 +74,6 @@ import { PRIORITY_CLASSES, PriorityLabelPipe } from '../../shared/labels';
 })
 export class TaskCardComponent {
   readonly task = input.required<Task>();
-  /** Está na coluna de concluídas (a última do quadro). */
   readonly done = input(false);
   readonly priorityClass = computed(
     () => PRIORITY_CLASSES[this.task().priority],

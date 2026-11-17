@@ -10,7 +10,6 @@ import { NotificationsStore } from '../core/notifications.store';
 import { InitialsPipe } from '../shared/labels';
 import { RelativeTimePipe } from '../shared/relative-time.pipe';
 
-/** Texto de cada tipo de notificação. */
 export function describe(n: AppNotification): {
   text: string;
   detail?: string;
@@ -151,8 +150,6 @@ export class NotificationsMenuComponent {
   private readonly trigger = viewChild.required(MatMenuTrigger);
 
   async open(n: AppNotification) {
-    // O painel impede o fechamento automático (para "marcar todas" e "remover"),
-    // então ao abrir um item é preciso fechar o menu explicitamente.
     this.trigger().closeMenu();
     void this.store.markRead(n.id);
     if (n.type === 'MEMBER_ADDED' && n.payload.organizationId) {

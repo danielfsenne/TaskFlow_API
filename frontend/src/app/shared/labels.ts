@@ -14,7 +14,6 @@ export const PRIORITY_LABELS: Record<TaskPriority, string> = {
   URGENT: 'Urgente',
 };
 
-/** Classes Tailwind do selo de prioridade. */
 export const PRIORITY_CLASSES: Record<TaskPriority, string> = {
   LOW: 'bg-slate-100 text-slate-600',
   MEDIUM: 'bg-blue-50 text-blue-700',
@@ -50,7 +49,6 @@ export class PriorityLabelPipe implements PipeTransform {
   }
 }
 
-/** Iniciais para o avatar: "Maria Souza" → "MS". */
 @Pipe({ name: 'initials' })
 export class InitialsPipe implements PipeTransform {
   transform(name: string | undefined | null) {

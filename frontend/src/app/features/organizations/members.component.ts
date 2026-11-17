@@ -156,7 +156,6 @@ export class MembersComponent implements OnInit {
   readonly myRole = computed(() => this.organization().role);
   readonly canManage = computed(() => roleAtLeast(this.myRole(), 'ADMIN'));
 
-  /** Só é possível atribuir papéis abaixo do seu (regra do backend). */
   readonly assignableRoles = computed<OrganizationRole[]>(() =>
     this.myRole() === 'OWNER' ? ['MEMBER', 'ADMIN'] : ['MEMBER'],
   );
@@ -198,7 +197,6 @@ export class MembersComponent implements OnInit {
         role,
       );
       this.members.update((list) => [...list, member]);
-      // resetForm também limpa o estado "enviado", que deixaria o campo vermelho.
       formDir.resetForm({ email: '', role: 'MEMBER' });
       this.ui.toast(`${member.name} foi adicionado`);
     } catch (e) {

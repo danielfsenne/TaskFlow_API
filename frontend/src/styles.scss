@@ -30,7 +30,6 @@ html {
   );
 
   & {
-    // Botões principais em grafite; o azul fica só para links e seleção.
     --mat-sys-primary: #1f2328;
     --mat-sys-on-primary: #ffffff;
     --mat-sys-primary-container: #eef1f4;
@@ -65,13 +64,11 @@ body {
   @apply bg-[#f6f7f9] text-slate-800;
 }
 
-// O reset de bordas do Tailwind (preflight) desenha uma linha no recorte do
-// rótulo dos campos "outline" do Material; remove só essa borda.
+// preflight do Tailwind risca o rótulo dos campos outline do Material
 .mdc-notched-outline__notch {
   border-right-style: none !important;
 }
 
-// Campos compactos (filtros da barra do quadro).
 .mat-mdc-form-field.compact {
   --mat-form-field-container-height: 36px;
   --mat-form-field-container-vertical-padding: 6px;
@@ -80,7 +77,6 @@ body {
   font-size: 13px;
 }
 
-// O painel de notificações é mais largo que um menu comum.
 .mat-mdc-menu-panel.notifications-panel {
   max-width: none;
 }

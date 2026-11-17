@@ -14,7 +14,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   providers: [
     AuthService,
     JwtStrategy,
-    // Todas as rotas exigem JWT, exceto as marcadas com @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })

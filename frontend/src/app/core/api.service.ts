@@ -40,7 +40,6 @@ export interface TaskInput {
   assigneeIds?: string[];
 }
 
-/** Cliente fino da API: cada método devolve uma Promise do corpo da resposta. */
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);

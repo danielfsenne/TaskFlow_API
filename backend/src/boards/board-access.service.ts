@@ -14,7 +14,6 @@ export interface ColumnAccess extends BoardAccess {
   column: BoardColumn;
 }
 
-/** Acesso a quadros e colunas herda o acesso ao projeto (404 para não membros). */
 @Injectable()
 export class BoardAccessService {
   constructor(
@@ -58,7 +57,6 @@ export class BoardAccessService {
     return { ...access, board, column };
   }
 
-  /** Acesso para alterar quadro/colunas: qualquer membro, projeto ativo. */
   async getWritableBoard(boardId: string, userId: string) {
     const access = await this.getBoardAccess(boardId, userId);
     this.projectAccess.assertNotArchived(access.project);
@@ -71,7 +69,6 @@ export class BoardAccessService {
     return access;
   }
 
-  /** Troca a mensagem do 404 para refletir o recurso pedido. */
   private async notFoundAs<T>(promise: Promise<T>, message: string) {
     try {
       return await promise;

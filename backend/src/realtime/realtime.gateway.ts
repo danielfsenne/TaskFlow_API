@@ -20,7 +20,6 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface SocketData {
   user: AuthUser;
-  /** Expiração do access token, em ms desde a época. */
   expiresAt: number;
   expiryTimer?: NodeJS.Timeout;
 }
@@ -44,7 +43,6 @@ export class RealtimeGateway
 
   afterInit(server: Namespace) {
     this.emitter.attach(server);
-    // Autentica no handshake: conexões sem token válido nem chegam a abrir.
     server.use((socket, next) => {
       this.authenticate(socket as AuthedSocket)
         .then(() => next())
@@ -66,7 +64,6 @@ export class RealtimeGateway
     const { user, expiresAt } = socket.data;
     void socket.join(userRoom(user.id));
 
-    // Token expirado encerra a conexão; o cliente renova e reconecta.
     const ms = Math.max(0, expiresAt - Date.now());
     socket.data.expiryTimer = setTimeout(() => {
       socket.emit('session.expired');
@@ -112,7 +109,6 @@ export class RealtimeGateway
   }
 }
 
-/** Aceita `auth.token` (navegador) ou o header Authorization (outros clientes). */
 function extractToken(socket: Socket): string | undefined {
   const fromAuth = (socket.handshake.auth as { token?: unknown })?.token;
   if (typeof fromAuth === 'string' && fromAuth) {

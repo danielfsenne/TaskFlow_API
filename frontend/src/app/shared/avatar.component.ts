@@ -1,7 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { InitialsPipe } from './labels';
 
-// Fundos suaves com texto escuro do mesmo tom: sempre legível.
 const TONES = [
   'bg-indigo-100 text-indigo-800',
   'bg-sky-100 text-sky-800',
@@ -13,7 +12,6 @@ const TONES = [
   'bg-orange-100 text-orange-900',
 ];
 
-/** Cor estável por pessoa (a mesma em toda a aplicação). */
 export function toneFor(key: string | undefined | null) {
   let h = 0;
   for (const ch of key ?? '') h = (h * 31 + ch.charCodeAt(0)) | 0;
@@ -36,7 +34,6 @@ export function toneFor(key: string | undefined | null) {
 })
 export class AvatarComponent {
   readonly name = input<string | null | undefined>('');
-  /** Chave da cor; por padrão o próprio nome. */
   readonly seed = input<string | null | undefined>(undefined);
   readonly size = input(32);
   readonly tone = computed(() => toneFor(this.seed() ?? this.name()));

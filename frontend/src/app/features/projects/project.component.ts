@@ -235,7 +235,6 @@ export class ProjectComponent {
   );
 
   readonly isAdmin = computed(() => roleAtLeast(this.org()?.role, 'ADMIN'));
-  /** Mesma regra do backend: criador do projeto ou ADMIN+. */
   readonly canManage = computed(
     () =>
       this.isAdmin() || this.project()?.createdById === this.auth.user()?.id,

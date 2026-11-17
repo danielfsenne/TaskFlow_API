@@ -30,7 +30,6 @@ export class ColumnsService {
     private readonly realtime: RealtimeEmitter,
   ) {}
 
-  /** Nova coluna entra no fim do quadro. */
   async create(boardId: string, userId: string, dto: CreateColumnDto) {
     await this.access.getWritableBoard(boardId, userId);
 
@@ -48,7 +47,6 @@ export class ColumnsService {
       );
     }
 
-    // A coluna nova vira a última, então a de concluídas muda.
     const column = await this.prisma.$transaction(async (tx) => {
       const column = await tx.boardColumn.create({
         data: {
@@ -78,11 +76,6 @@ export class ColumnsService {
     return column;
   }
 
-  /**
-   * Coloca a coluna logo depois de `afterColumnId` (ou no início, se null).
-   * Normalmente só a coluna movida muda de posição; se faltar espaço entre os
-   * vizinhos, o quadro inteiro é renumerado.
-   */
   async move(id: string, userId: string, dto: MoveColumnDto) {
     const { board } = await this.access.getWritableColumn(id, userId);
     if (dto.afterColumnId === id) {
@@ -126,7 +119,6 @@ export class ColumnsService {
     return column;
   }
 
-  /** Só remove colunas vazias, para não apagar tarefas por acidente. */
   async remove(id: string, userId: string) {
     const { board } = await this.access.getWritableColumn(id, userId);
     const tasks = await this.prisma.task.count({ where: { columnId: id } });

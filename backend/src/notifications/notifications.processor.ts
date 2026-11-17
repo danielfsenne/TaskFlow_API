@@ -5,10 +5,6 @@ import { RealtimeEvent } from '../realtime/realtime-events';
 import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { NOTIFICATIONS_QUEUE, NotificationJob } from './notification-types';
 
-/**
- * Worker que grava as notificações enfileiradas, uma linha por destinatário,
- * e as envia na hora para quem estiver conectado.
- */
 @Processor(NOTIFICATIONS_QUEUE)
 export class NotificationsProcessor extends WorkerHost {
   constructor(
@@ -26,7 +22,6 @@ export class NotificationsProcessor extends WorkerHost {
       select: { id: true, name: true, avatarUrl: true },
     });
 
-    // Usuários podem ter sido excluídos entre o evento e o processamento.
     const existing = await this.prisma.user.findMany({
       where: { id: { in: recipientIds } },
       select: { id: true },

@@ -3,7 +3,6 @@ import { Component, computed, input, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-/** Topo "redondo" do eixo: 0–5 → 5, 6–10 → 10, 11–20 → 20, 21–50 → 50… */
 export function niceMax(value: number): number {
   if (value <= 5) return 5;
   const pow = 10 ** Math.floor(Math.log10(value));
@@ -13,7 +12,6 @@ export function niceMax(value: number): number {
 
 export type Tone = 'neutral' | 'brand' | 'critical' | 'warning' | 'good';
 
-// Só estados que pedem atenção ganham cor (sempre com ícone + rótulo).
 const TONE_TEXT: Record<Tone, string> = {
   neutral: 'text-ink',
   brand: 'text-ink',
@@ -65,10 +63,6 @@ export interface WeekPoint {
   completed: number;
 }
 
-/**
- * Colunas agrupadas por semana: criadas × concluídas. Um único eixo, legenda
- * sempre visível, dica por semana e alternativa em tabela.
- */
 @Component({
   selector: 'app-weekly-chart',
   imports: [DatePipe, MatTooltipModule],
@@ -114,7 +108,6 @@ export interface WeekPoint {
       </table>
     } @else {
       <div class="flex gap-2 pt-3">
-        <!-- Eixo Y -->
         <div
           class="relative h-44 w-6 shrink-0 text-right text-[11px] tabular-nums text-slate-400"
         >
@@ -202,15 +195,10 @@ export interface BarRow {
   key: string;
   label: string;
   value: number;
-  /** Parte do valor destacada como crítica (ex.: atrasadas). */
   critical?: number;
   hint?: string;
 }
 
-/**
- * Barras horizontais com valor na ponta. Com `criticalLabel`, cada barra
- * separa a parte crítica (vermelha, com legenda) do restante.
- */
 @Component({
   selector: 'app-bar-list',
   imports: [MatTooltipModule],

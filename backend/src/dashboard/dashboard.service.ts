@@ -37,7 +37,6 @@ export class DashboardService {
     private readonly projectAccess: ProjectAccessService,
   ) {}
 
-  /** Indicadores da organização (só projetos ativos), por projeto. */
   async organization(organizationId: string, userId: string) {
     await this.orgAccess.getMembership(organizationId, userId);
     const [projects, rows, members] = await Promise.all([
@@ -59,7 +58,6 @@ export class DashboardService {
     );
   }
 
-  /** Indicadores de um projeto, por quadro. */
   async project(projectId: string, userId: string) {
     const { project } = await this.projectAccess.getAccess(projectId, userId);
     const [boards, rows, members] = await Promise.all([
@@ -81,10 +79,6 @@ export class DashboardService {
     );
   }
 
-  /**
-   * Painel pessoal: tarefas abertas atribuídas a mim em projetos ativos,
-   * mais um resumo de cada organização.
-   */
   async me(userId: string, now = new Date()) {
     const mine: Prisma.TaskWhereInput = {
       assignees: { some: { userId } },
@@ -131,7 +125,6 @@ export class DashboardService {
             },
             _count: { select: { comments: true } },
           },
-          // Prazo mais próximo primeiro; sem prazo vai para o fim.
           orderBy: [
             { dueDate: { sort: 'asc', nulls: 'last' } },
             { createdAt: 'asc' },

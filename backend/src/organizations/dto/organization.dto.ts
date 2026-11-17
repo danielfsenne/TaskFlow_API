@@ -6,7 +6,6 @@ import { IsEmail, IsIn, IsString, MaxLength, MinLength } from 'class-validator';
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
 
-/** OWNER não pode ser atribuído diretamente: só existe um, o criador. */
 export const ASSIGNABLE_ROLES = [
   OrganizationRole.ADMIN,
   OrganizationRole.MEMBER,

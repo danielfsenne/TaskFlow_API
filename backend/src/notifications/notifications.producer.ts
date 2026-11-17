@@ -7,11 +7,6 @@ import {
   NotificationType,
 } from './notification-types';
 
-/**
- * Ponto de entrada para gerar notificações a partir dos outros módulos.
- * O enfileiramento não é aguardado: se o Redis estiver fora, a requisição
- * principal não trava nem falha; o erro só é registrado no log.
- */
 @Injectable()
 export class NotificationsProducer {
   private readonly logger = new Logger(NotificationsProducer.name);

@@ -23,7 +23,6 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([authInterceptor])),
-    // Restaura a sessão antes da primeira navegação (os guards dependem dela).
     provideAppInitializer(() => inject(AuthService).restore()),
     provideAnimationsAsync(),
     { provide: LOCALE_ID, useValue: 'pt-BR' },

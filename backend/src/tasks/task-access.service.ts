@@ -10,7 +10,6 @@ export interface TaskAccess extends ProjectAccess {
   task: Task;
 }
 
-/** Acesso a uma tarefa herda o acesso ao projeto (404 para não membros). */
 @Injectable()
 export class TaskAccessService {
   constructor(
@@ -40,14 +39,12 @@ export class TaskAccessService {
     }
   }
 
-  /** Acesso para alterar a tarefa ou algo dela: projeto não arquivado. */
   async getWritable(taskId: string, userId: string): Promise<TaskAccess> {
     const access = await this.getAccess(taskId, userId);
     this.projectAccess.assertNotArchived(access.project);
     return access;
   }
 
-  /** true se o usuário gerencia o projeto (criador ou ADMIN+). */
   isManager(access: TaskAccess, userId: string): boolean {
     try {
       this.projectAccess.assertManager(access, userId);

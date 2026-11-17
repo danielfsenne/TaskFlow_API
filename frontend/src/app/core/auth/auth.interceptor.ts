@@ -10,10 +10,6 @@ import { AuthService } from './auth.service';
 const withToken = (req: HttpRequest<unknown>, token: string | null) =>
   token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
 
-/**
- * Anexa o access token às chamadas da API. Num 401, renova o token uma vez
- * e repete a requisição; se a renovação falhar, encerra a sessão.
- */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith('/api/') || req.url.startsWith('/api/v1/auth/')) {
     return next(req);

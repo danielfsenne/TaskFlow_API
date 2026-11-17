@@ -4,7 +4,6 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Azul de destaque (links, seleção, foco).
         brand: {
           50: '#eff5ff',
           100: '#dbe7fe',
@@ -18,7 +17,6 @@ module.exports = {
           900: '#1e357a',
         },
         ink: '#1f2328',
-        // Séries dos gráficos (paleta validada para daltonismo).
         series: { created: '#2a78d6', completed: '#1baf7a' },
         critical: '#d03b3b',
       },

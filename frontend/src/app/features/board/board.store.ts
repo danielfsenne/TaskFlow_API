@@ -52,7 +52,6 @@ const initialState: BoardState = {
 const byPosition = (a: { position: number }, b: { position: number }) =>
   a.position - b.position;
 
-/** Posição local provisória entre dois vizinhos (o servidor dá a definitiva). */
 function localPosition(
   prev?: { position: number },
   next?: { position: number },
@@ -63,7 +62,6 @@ function localPosition(
   return (prev.position + next.position) / 2;
 }
 
-/** Só substitui se a versão recebida não for mais antiga que a local. */
 function isNewer(incoming: Task, current: Task | undefined) {
   return !current || incoming.updatedAt >= current.updatedAt;
 }
@@ -95,7 +93,6 @@ export const BoardStore = signalStore(
 
     return {
       sortedColumns,
-      /** Tarefas visíveis (após filtros) por coluna, já ordenadas. */
       tasksByColumn: computed(() => {
         const map = new Map<string, Task[]>();
         for (const c of store.columns()) map.set(c.id, []);
@@ -112,7 +109,6 @@ export const BoardStore = signalStore(
       }),
       readOnly: computed(() => store.project()?.archived ?? true),
       me: computed(() => auth.user()?.id ?? null),
-      /** Criador do projeto ou ADMIN+ (pode excluir quadro e tarefas alheias). */
       canManageProject: computed(
         () =>
           roleAtLeast(store.organization()?.role, 'ADMIN') ||
@@ -170,14 +166,12 @@ export const BoardStore = signalStore(
       });
     };
 
-    /** Algo deu errado numa ação otimista: avisa e recarrega o estado real. */
     const recover = async (error: unknown) => {
       ui.error(error);
       const board = store.board();
       if (board) await load(board.id).catch(() => undefined);
     };
 
-    /** Recarrega tarefas e colunas sem limpar a tela (ex.: após reconectar). */
     const refresh = async () => {
       const board = store.board();
       if (!board) return;
@@ -188,7 +182,7 @@ export const BoardStore = signalStore(
         ]);
         patchState(store, { board: fresh, columns: fresh.columns, tasks });
       } catch {
-        // Sem conexão ainda: a próxima reconexão tenta de novo.
+        // sem conexão; tenta de novo ao reconectar
       }
     };
 
@@ -249,10 +243,6 @@ export const BoardStore = signalStore(
         }
       },
 
-      /**
-       * Move a tarefa para `toColumnId`, na posição `toIndex` da lista visível.
-       * Atualiza a tela na hora e confirma com o servidor.
-       */
       async moveTask(taskId: string, toColumnId: string, toIndex: number) {
         const task = store.tasks().find((t) => t.id === taskId);
         if (!task) return;
@@ -293,7 +283,6 @@ export const BoardStore = signalStore(
         }
       },
 
-      /** Aplica um movimento vindo do servidor (tempo real). */
       applyTaskMove(task: Task, positions: Positioned[]) {
         const current = store.tasks().find((t) => t.id === task.id);
         if (!isNewer(task, current)) return;
@@ -395,7 +384,6 @@ export const BoardStore = signalStore(
         if (board) patchState(store, { board: { ...board, name } });
       },
 
-      /** Contador de comentários no card, sem recarregar a tarefa. */
       bumpComments(taskId: string, delta: number) {
         patchState(store, {
           tasks: store.tasks().map((t) =>
@@ -414,7 +402,6 @@ export const BoardStore = signalStore(
   }),
 );
 
-/** ID da tarefa que hoje está imediatamente acima de `taskId` na lista. */
 function targetPrevId(list: Task[], taskId: string): string | undefined {
   const i = list.findIndex((t) => t.id === taskId);
   return i > 0 ? list[i - 1].id : undefined;

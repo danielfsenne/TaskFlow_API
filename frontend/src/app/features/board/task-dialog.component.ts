@@ -89,7 +89,6 @@ export interface TaskDialogData {
         </p>
 
         <mat-dialog-content class="!flex flex-col gap-5 !pt-4 md:!flex-row">
-          <!-- Coluna principal: descrição e comentários -->
           <section class="min-w-0 flex-1">
             <h3 class="mb-1 text-sm font-semibold text-slate-700">Descrição</h3>
             @if (editingDescription()) {
@@ -239,7 +238,6 @@ export interface TaskDialogData {
             }
           </section>
 
-          <!-- Lateral: propriedades -->
           <aside class="flex shrink-0 flex-col gap-3 pt-2 md:w-56">
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Coluna</mat-label>
@@ -327,10 +325,6 @@ export class TaskDialogComponent implements OnInit {
   private readonly data = inject<TaskDialogData>(MAT_DIALOG_DATA);
   readonly taskId = this.data.taskId;
 
-  /**
-   * Comentários já contados no card (criados ou removidos). O eco do tempo
-   * real chega junto com a resposta HTTP; isso evita contar duas vezes.
-   */
   private readonly countedCreated = new Set<string>();
   private readonly countedDeleted = new Set<string>();
 
@@ -370,7 +364,6 @@ export class TaskDialogComponent implements OnInit {
   newComment = '';
 
   constructor() {
-    // A tarefa sumiu (excluída aqui ou por outra pessoa): fecha o painel.
     effect(() => {
       if (!this.store.loading() && !this.task()) this.ref.close();
     });
@@ -386,8 +379,6 @@ export class TaskDialogComponent implements OnInit {
     }
   }
 
-  // Comentários vindos do tempo real (chamados pelo quadro).
-  /** Retorna true se o comentário ainda não tinha sido contado. */
   receiveComment(comment: Comment): boolean {
     const isNew = !this.countedCreated.has(comment.id);
     this.countedCreated.add(comment.id);
@@ -396,13 +387,11 @@ export class TaskDialogComponent implements OnInit {
         list.map((c) => (c.id === comment.id ? comment : c)),
       );
     } else if (!this.nextCursor()) {
-      // Só acrescenta no fim se a lista já está toda carregada.
       this.comments.update((list) => [...list, comment]);
     }
     return isNew;
   }
 
-  /** Retorna true se a remoção ainda não tinha sido contada. */
   forgetComment(commentId: string): boolean {
     const isNew = !this.countedDeleted.has(commentId);
     this.countedDeleted.add(commentId);
@@ -447,7 +436,7 @@ export class TaskDialogComponent implements OnInit {
     await this.store.setAssignees(this.data.taskId, userIds);
   }
 
-  /** Guarda o prazo ao meio-dia local, para não mudar de dia com o fuso. */
+  // meio-dia local, para o fuso não mudar o dia
   async setDueDate(date: Date | null) {
     let dueDate: string | null = null;
     if (date) {
@@ -458,7 +447,6 @@ export class TaskDialogComponent implements OnInit {
     await this.store.updateTask(this.data.taskId, { dueDate });
   }
 
-  /** Trocar de coluna pelo painel coloca a tarefa no fim da coluna de destino. */
   async moveTo(columnId: string) {
     const end = (this.store.tasksByColumn().get(columnId) ?? []).filter(
       (t) => t.id !== this.data.taskId,

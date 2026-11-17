@@ -69,7 +69,6 @@ export class BoardsService {
     return board;
   }
 
-  /** Excluir um quadro apaga colunas e tarefas: exige gerenciar o projeto. */
   async remove(id: string, userId: string) {
     const access = await this.access.getWritableBoard(id, userId);
     this.projectAccess.assertManager(access, userId);

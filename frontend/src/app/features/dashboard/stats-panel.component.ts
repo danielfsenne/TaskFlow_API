@@ -9,7 +9,6 @@ import {
 } from '../../shared/charts';
 import { PRIORITY_LABELS } from '../../shared/labels';
 
-/** Indicadores de uma organização (por projeto) ou de um projeto (por quadro). */
 @Component({
   selector: 'app-stats-panel',
   imports: [
@@ -138,7 +137,6 @@ import { PRIORITY_LABELS } from '../../shared/labels';
 })
 export class StatsPanelComponent {
   readonly stats = input.required<DashboardStats>();
-  /** 'projects' na organização, 'boards' no projeto. */
   readonly breakdownKind = input<'projects' | 'boards'>('projects');
 
   readonly breakdownTitle = computed(() =>

@@ -232,7 +232,6 @@ export class OrganizationComponent {
   private readonly router = inject(Router);
   private readonly workspace = inject(WorkspaceService);
 
-  /** Parâmetro de rota. */
   readonly orgId = input.required<string>();
 
   readonly org = signal<Organization | null>(null);
@@ -242,7 +241,6 @@ export class OrganizationComponent {
   readonly showArchived = signal(false);
   readonly tab = signal(0);
   readonly isAdmin = computed(() => roleAtLeast(this.org()?.role, 'ADMIN'));
-  /** Progresso de cada projeto, vindo dos indicadores da organização. */
   readonly progress = computed(
     () => new Map((this.stats()?.breakdown ?? []).map((b) => [b.id, b])),
   );
@@ -273,7 +271,7 @@ export class OrganizationComponent {
     try {
       this.stats.set(await this.api.organizationDashboard(id));
     } catch {
-      // A página continua útil sem os indicadores.
+      // a página funciona sem os indicadores
     }
   }
 

@@ -162,7 +162,6 @@ export class ShellComponent {
   readonly menuOpen = signal(false);
 
   constructor() {
-    // Fecha o menu do celular ao navegar.
     this.router.events
       .pipe(
         filter((e) => e instanceof NavigationEnd),

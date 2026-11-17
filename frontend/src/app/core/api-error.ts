@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
-/** Extrai uma mensagem legível de um erro da API (o Nest pode mandar lista). */
 export function apiErrorMessage(
   error: unknown,
   fallback = 'Algo deu errado. Tente novamente.',

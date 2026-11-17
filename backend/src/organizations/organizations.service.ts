@@ -183,7 +183,6 @@ export class OrganizationsService {
       this.assertOutranks(actor.role, target.role);
     }
 
-    // Quem sai da organização deixa de ser responsável pelas tarefas dela.
     await this.prisma.$transaction([
       this.prisma.taskAssignee.deleteMany({
         where: {
@@ -198,7 +197,6 @@ export class OrganizationsService {
       }),
     ]);
 
-    // Conexões abertas do ex-membro deixam de receber eventos dos quadros.
     const boards = await this.prisma.board.findMany({
       where: { project: { organizationId: id } },
       select: { id: true },
@@ -217,14 +215,12 @@ export class OrganizationsService {
     return member;
   }
 
-  /** Só é possível gerenciar quem tem papel inferior ao seu. */
   private assertOutranks(actor: OrganizationRole, target: OrganizationRole) {
     if (roleRank(actor) <= roleRank(target)) {
       throw new ForbiddenException('Você não pode gerenciar este membro');
     }
   }
 
-  /** Só é possível atribuir papéis abaixo do seu (ADMIN → MEMBER; OWNER → ADMIN/MEMBER). */
   private assertCanAssign(actor: OrganizationRole, role: OrganizationRole) {
     if (roleRank(role) >= roleRank(actor)) {
       throw new ForbiddenException(`Você não pode atribuir o papel ${role}`);

@@ -1,5 +1,3 @@
-/** Tipos das respostas da API (espelham o backend). */
-
 export interface User {
   id: string;
   name: string;
@@ -99,7 +97,6 @@ export interface Task {
   priority: TaskPriority;
   position: number;
   dueDate: string | null;
-  /** Preenchida enquanto a tarefa está na última coluna do quadro. */
   completedAt: string | null;
   createdById: string;
   createdAt: string;
@@ -159,8 +156,6 @@ export interface Positioned {
   position: number;
 }
 
-// Dashboards
-
 export interface StatTotals {
   total: number;
   open: number;
@@ -180,7 +175,6 @@ export interface DashboardStats {
     overdue: number;
   }[];
   weekly: { weekStart: string; created: number; completed: number }[];
-  /** Projetos (na organização) ou quadros (no projeto). */
   breakdown: {
     id: string;
     name: string;

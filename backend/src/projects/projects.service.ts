@@ -52,7 +52,6 @@ export class ProjectsService {
   async update(id: string, userId: string, dto: UpdateProjectDto) {
     const { project } = await this.access.assertCanManage(id, userId);
 
-    // Num projeto arquivado, a única alteração permitida é desarquivar.
     const { archived, ...fields } = dto;
     if (Object.keys(fields).length > 0 && archived !== false) {
       this.access.assertNotArchived(project);
@@ -65,7 +64,6 @@ export class ProjectsService {
     });
   }
 
-  /** Excluir é destrutivo: exige ADMIN+, mesmo para o criador. */
   async remove(id: string, userId: string) {
     await this.access.assertRole(id, userId, OrganizationRole.ADMIN);
     await this.prisma.project.delete({ where: { id } });

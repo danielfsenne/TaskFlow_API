@@ -19,14 +19,10 @@ function writeStorage(key: string, value: string | null) {
     if (value === null) localStorage.removeItem(key);
     else localStorage.setItem(key, value);
   } catch {
-    // Armazenamento indisponível (modo privado): a sessão vale só nesta aba.
+    // sem localStorage (aba privada)
   }
 }
 
-/**
- * Sessão do usuário. O access token fica só em memória; o refresh token
- * fica no localStorage para a sessão sobreviver a recarregar a página.
- */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -40,7 +36,6 @@ export class AuthService {
   readonly accessToken = this._accessToken.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
 
-  /** Restaura a sessão ao abrir o app, se houver refresh token salvo. */
   async restore(): Promise<void> {
     if (!readStorage(REFRESH_KEY)) return;
     const token = await this.refresh();
@@ -77,17 +72,12 @@ export class AuthService {
     this.clear();
     await this.router.navigate(['/login']);
     if (refreshToken) {
-      // Revoga no servidor; se falhar, o token expira sozinho.
       this.http
         .post('/api/v1/auth/logout', { refreshToken })
         .subscribe({ error: () => undefined });
     }
   }
 
-  /**
-   * Troca o refresh token por um novo par. Chamadas simultâneas compartilham
-   * a mesma requisição, porque o backend rotaciona (e invalida) o token usado.
-   */
   refresh(): Promise<string | null> {
     this.refreshing ??= this.doRefresh().finally(() => {
       this.refreshing = null;
@@ -95,7 +85,6 @@ export class AuthService {
     return this.refreshing;
   }
 
-  /** Sessão expirou de vez: limpa e manda para o login. */
   async expire() {
     this.clear();
     await this.router.navigate(['/login'], {

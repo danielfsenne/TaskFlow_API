@@ -4,16 +4,11 @@ import { AuthService } from './auth/auth.service';
 import { AppNotification, Organization } from './models';
 import { RealtimeService } from './realtime.service';
 
-/**
- * Organizações do usuário, compartilhadas pela barra lateral e pelas telas.
- * Quem cria, renomeia ou exclui uma organização chama `reload()`.
- */
 @Injectable({ providedIn: 'root' })
 export class WorkspaceService {
   private readonly api = inject(ApiService);
   readonly organizations = signal<Organization[]>([]);
   readonly loaded = signal(false);
-  /** Organização da tela aberta (também em projetos e quadros), para o menu. */
   readonly activeOrgId = signal<string | null>(null);
 
   constructor() {
@@ -28,7 +23,6 @@ export class WorkspaceService {
         }
       });
     });
-    // Alguém me adicionou a uma organização: aparece na hora.
     inject(RealtimeService)
       .on<{ notification: AppNotification }>('notification.created')
       .subscribe(({ notification }) => {
@@ -40,7 +34,7 @@ export class WorkspaceService {
     try {
       this.organizations.set(await this.api.organizations());
     } catch {
-      // Mantém a lista anterior; a próxima ação tenta de novo.
+      // mantém a lista anterior
     } finally {
       this.loaded.set(true);
     }

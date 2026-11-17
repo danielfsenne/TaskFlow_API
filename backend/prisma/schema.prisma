@@ -46,7 +46,6 @@ model RefreshToken {
   tokenHash String    @map("token_hash")
   expiresAt DateTime  @map("expires_at")
   revokedAt DateTime? @map("revoked_at")
-  /// Quando foi trocado por um novo par (rotação), e não revogado por logout.
   rotatedAt DateTime? @map("rotated_at")
   createdAt DateTime  @default(now()) @map("created_at")
 
@@ -140,7 +139,6 @@ model Task {
   priority    TaskPriority @default(MEDIUM)
   position    Float
   dueDate     DateTime?    @map("due_date")
-  /// Preenchida enquanto a tarefa está na última coluna do quadro.
   completedAt DateTime?    @map("completed_at")
   createdById String       @map("created_by_id")
   createdAt   DateTime     @default(now()) @map("created_at")

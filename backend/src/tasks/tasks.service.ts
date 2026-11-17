@@ -38,7 +38,6 @@ const taskInclude = {
 
 type TaskWithRelations = Prisma.TaskGetPayload<{ include: typeof taskInclude }>;
 
-/** Achata `assignees: [{ user }]` em uma lista de usuários. */
 function present({ assignees, ...task }: TaskWithRelations) {
   return {
     ...task,
@@ -49,7 +48,6 @@ function present({ assignees, ...task }: TaskWithRelations) {
   };
 }
 
-/** Dados comuns gravados nas notificações sobre uma tarefa. */
 export function taskEventData(
   task: Pick<Task, 'id' | 'title' | 'boardId'>,
   project: Pick<Project, 'id' | 'name' | 'organizationId'>,
@@ -177,10 +175,6 @@ export class TasksService {
     return task;
   }
 
-  /**
-   * Move a tarefa para `columnId`, logo abaixo de `afterTaskId` (null = topo).
-   * Serve tanto para reordenar na mesma coluna quanto para trocar de coluna.
-   */
   async move(id: string, userId: string, dto: MoveTaskDto) {
     const { task } = await this.taskAccess.getWritable(id, userId);
     if (dto.afterTaskId === id) {
@@ -210,7 +204,6 @@ export class TasksService {
         );
       }
 
-      // Trocar de coluna pode concluir ou reabrir a tarefa.
       const completion: Prisma.TaskUncheckedUpdateInput = {};
       if (column.id !== task.columnId) {
         const done = await doneColumnId(tx, task.boardId);
@@ -239,7 +232,6 @@ export class TasksService {
     return moved;
   }
 
-  /** Substitui a lista de responsáveis; todos precisam ser da organização. */
   async setAssignees(id: string, userId: string, userIds: string[]) {
     const { project, task } = await this.taskAccess.getWritable(id, userId);
     await this.assertOrgMembers(project.organizationId, userIds);
@@ -261,7 +253,6 @@ export class TasksService {
       }),
     ]);
 
-    // Só quem acabou de entrar na lista é notificado.
     this.notifications.notify(
       NotificationType.TaskAssigned,
       userId,
@@ -275,7 +266,6 @@ export class TasksService {
     return updated;
   }
 
-  /** Excluir: o autor da tarefa, ou quem gerencia o projeto. */
   async remove(id: string, userId: string) {
     const access = await this.taskAccess.getWritable(id, userId);
     if (

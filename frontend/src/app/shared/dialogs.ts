@@ -24,7 +24,6 @@ export interface FormDialogData {
   name?: string;
   minLength?: number;
   maxLength?: number;
-  /** Mostra também um campo de descrição (opcional). */
   withDescription?: boolean;
   description?: string;
 }
@@ -140,7 +139,6 @@ export class ConfirmDialogComponent {
   readonly data = inject<ConfirmDialogData>(MAT_DIALOG_DATA);
 }
 
-/** Atalhos para diálogos e avisos usados em várias telas. */
 @Injectable({ providedIn: 'root' })
 export class UiService {
   private readonly dialog = inject(MatDialog);

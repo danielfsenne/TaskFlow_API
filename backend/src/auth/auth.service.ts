@@ -15,7 +15,7 @@ import { AccessTokenPayload, RefreshTokenPayload } from './types/auth-user';
 
 const BCRYPT_ROUNDS = 10;
 const ROTATION_GRACE_MS = 30_000;
-// Hash usado quando o e-mail não existe, para o login levar o mesmo tempo.
+// e-mail inexistente também compara um hash, para não vazar pelo tempo de resposta
 const DUMMY_HASH = hashSync(randomUUID(), BCRYPT_ROUNDS);
 
 export interface AuthTokens {
@@ -65,7 +65,6 @@ export class AuthService {
     };
   }
 
-  /** Rotaciona o refresh token: o atual é revogado e um novo par é emitido. */
   async refresh(refreshToken: string): Promise<AuthTokens> {
     const payload = await this.verifyRefreshToken(refreshToken);
 
@@ -83,7 +82,6 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token inválido');
     }
 
-    // Revoga de forma atômica; se já estava revogado, é reuso de token.
     const now = new Date();
     const { count } = await this.prisma.refreshToken.updateMany({
       where: { id: stored.id, revokedAt: null },
@@ -91,8 +89,7 @@ export class AuthService {
     });
 
     if (count === 0) {
-      // Recarregar a página no meio de uma renovação reenvia o token antigo
-      // logo em seguida; isso não é roubo, então há uma pequena tolerância.
+      // F5 durante o refresh reenvia o token antigo; não é roubo
       const recentlyRotated =
         stored.rotatedAt &&
         now.getTime() - stored.rotatedAt.getTime() < ROTATION_GRACE_MS;
@@ -159,7 +156,6 @@ export class AuthService {
     }
   }
 
-  /** Derruba todas as sessões; também encerra a tolerância de rotação. */
   private async revokeAllForUser(userId: string) {
     const now = new Date();
     await this.prisma.$transaction([
@@ -174,7 +170,7 @@ export class AuthService {
     ]);
   }
 
-  // O refresh token já tem alta entropia, então SHA-256 basta (e permite busca rápida).
+  // token aleatório e longo: sha256 basta
   private hashToken(token: string) {
     return createHash('sha256').update(token).digest('hex');
   }

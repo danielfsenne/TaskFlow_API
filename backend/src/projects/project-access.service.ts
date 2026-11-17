@@ -15,10 +15,6 @@ export interface ProjectAccess {
   membership: OrganizationMember;
 }
 
-/**
- * Acesso a um projeto deriva da participação na organização dele.
- * Quem não é membro recebe 404, assim como nas organizações.
- */
 @Injectable()
 export class ProjectAccessService {
   constructor(
@@ -34,7 +30,6 @@ export class ProjectAccessService {
     return this.forProject(project, userId);
   }
 
-  /** Mesmo que getAccess, para quem já carregou o projeto (quadros, tarefas). */
   async forProject(project: Project, userId: string): Promise<ProjectAccess> {
     const membership = await this.prisma.organizationMember.findUnique({
       where: {
@@ -49,7 +44,6 @@ export class ProjectAccessService {
     return { project, membership };
   }
 
-  /** Gerenciar o projeto: o próprio criador ou ADMIN+ da organização. */
   async assertCanManage(projectId: string, userId: string) {
     const access = await this.getAccess(projectId, userId);
     this.assertManager(access, userId);
@@ -65,7 +59,6 @@ export class ProjectAccessService {
     }
   }
 
-  /** Exige um papel mínimo na organização do projeto. */
   async assertRole(
     projectId: string,
     userId: string,
@@ -78,7 +71,6 @@ export class ProjectAccessService {
     return access;
   }
 
-  /** Projetos arquivados ficam somente leitura até serem desarquivados. */
   assertNotArchived(project: Project) {
     if (project.archived) {
       throw new ForbiddenException('Projeto arquivado é somente leitura');

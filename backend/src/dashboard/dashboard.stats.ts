@@ -1,6 +1,5 @@
 import { TaskPriority } from '@prisma/client';
 
-/** O mínimo de cada tarefa que os indicadores precisam. */
 export interface StatTask {
   priority: TaskPriority;
   dueDate: Date | null;
@@ -25,7 +24,6 @@ export const WEEKS = 8;
 const DAY = 24 * 60 * 60 * 1000;
 const PRIORITIES: TaskPriority[] = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
 
-/** Segunda-feira 00:00 (UTC) da semana de `date`. */
 export function weekStart(date: Date): Date {
   const d = new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
@@ -37,10 +35,6 @@ export function weekStart(date: Date): Date {
 const isOverdue = (t: StatTask, now: Date) =>
   !t.completedAt && !!t.dueDate && t.dueDate < now;
 
-/**
- * Indicadores de um conjunto de tarefas. `groups` define o detalhamento
- * (projetos de uma organização, quadros de um projeto).
- */
 export function computeStats(
   tasks: StatTask[],
   groups: StatGroup[],
