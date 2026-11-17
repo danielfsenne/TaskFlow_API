@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { syncBoardCompletion } from '../common/completion';
 import {
   changedPositions,
   planMove,
@@ -47,12 +48,17 @@ export class ColumnsService {
       );
     }
 
-    const column = await this.prisma.boardColumn.create({
-      data: {
-        boardId,
-        name: dto.name,
-        position: positionBetween(last?.position ?? null, null),
-      },
+    // A coluna nova vira a última, então a de concluídas muda.
+    const column = await this.prisma.$transaction(async (tx) => {
+      const column = await tx.boardColumn.create({
+        data: {
+          boardId,
+          name: dto.name,
+          position: positionBetween(last?.position ?? null, null),
+        },
+      });
+      await syncBoardCompletion(tx, boardId);
+      return column;
     });
     this.realtime.toBoard(boardId, RealtimeEvent.ColumnCreated, userId, {
       column,
@@ -106,6 +112,7 @@ export class ColumnsService {
           data: { position },
         });
       }
+      await syncBoardCompletion(tx, board.id);
       const column = await tx.boardColumn.findUniqueOrThrow({
         where: { id },
       });
@@ -128,7 +135,10 @@ export class ColumnsService {
         'A coluna tem tarefas; mova-as antes de excluí-la',
       );
     }
-    await this.prisma.boardColumn.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.boardColumn.delete({ where: { id } });
+      await syncBoardCompletion(tx, board.id);
+    });
     this.realtime.toBoard(board.id, RealtimeEvent.ColumnDeleted, userId, {
       columnId: id,
     });

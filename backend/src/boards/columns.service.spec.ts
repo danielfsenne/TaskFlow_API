@@ -15,7 +15,9 @@ describe('ColumnsService', () => {
       findMany: jest.fn(),
       update: jest.fn(),
       findUniqueOrThrow: jest.fn(),
+      delete: jest.fn(),
     },
+    task: { updateMany: jest.fn() },
   };
   const prisma = {
     $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
@@ -104,7 +106,7 @@ describe('ColumnsService', () => {
     await expect(service.remove('c', 'u')).rejects.toBeInstanceOf(
       ConflictException,
     );
-    expect(prisma.boardColumn.delete).not.toHaveBeenCalled();
+    expect(tx.boardColumn.delete).not.toHaveBeenCalled();
   });
 
   it('propaga o bloqueio de projeto arquivado', async () => {

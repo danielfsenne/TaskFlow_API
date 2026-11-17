@@ -138,6 +138,8 @@ model Task {
   priority    TaskPriority @default(MEDIUM)
   position    Float
   dueDate     DateTime?    @map("due_date")
+  /// Preenchida enquanto a tarefa está na última coluna do quadro.
+  completedAt DateTime?    @map("completed_at")
   createdById String       @map("created_by_id")
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")

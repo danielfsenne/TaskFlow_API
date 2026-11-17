@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, Project, Task } from '@prisma/client';
 import { BoardAccessService } from '../boards/board-access.service';
+import { doneColumnId } from '../common/completion';
 import {
   changedPositions,
   planMove,
@@ -98,11 +99,14 @@ export class TasksService {
 
     await this.assertOrgMembers(project.organizationId, assigneeIds);
 
-    const last = await this.prisma.task.findFirst({
-      where: { columnId: column.id },
-      orderBy: { position: 'desc' },
-      select: { position: true },
-    });
+    const [last, done] = await Promise.all([
+      this.prisma.task.findFirst({
+        where: { columnId: column.id },
+        orderBy: { position: 'desc' },
+        select: { position: true },
+      }),
+      doneColumnId(this.prisma, boardId),
+    ]);
 
     const task = await this.prisma.task.create({
       data: {
@@ -111,6 +115,7 @@ export class TasksService {
         columnId: column.id,
         createdById: userId,
         position: positionBetween(last?.position ?? null, null),
+        completedAt: column.id === done ? new Date() : null,
         assignees: { create: assigneeIds.map((id) => ({ userId: id })) },
       },
       include: taskInclude,
@@ -205,12 +210,21 @@ export class TasksService {
         );
       }
 
+      // Trocar de coluna pode concluir ou reabrir a tarefa.
+      const completion: Prisma.TaskUncheckedUpdateInput = {};
+      if (column.id !== task.columnId) {
+        const done = await doneColumnId(tx, task.boardId);
+        completion.completedAt = column.id === done ? new Date() : null;
+      }
+
       const positions = changedPositions(plan, id);
       for (const { id: taskId, position } of positions) {
         await tx.task.update({
           where: { id: taskId },
           data:
-            taskId === id ? { columnId: column.id, position } : { position },
+            taskId === id
+              ? { columnId: column.id, position, ...completion }
+              : { position },
         });
       }
       return positions;

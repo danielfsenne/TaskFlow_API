@@ -15,7 +15,12 @@ import { TaskAccessService } from './task-access.service';
 import { TasksService } from './tasks.service';
 
 describe('TasksService', () => {
-  const tx = { task: { findMany: jest.fn(), update: jest.fn() } };
+  // Colunas do quadro da maior para a menor posição: c3 é a de concluídas.
+  const columnsDesc = jest.fn().mockResolvedValue([{ id: 'c3' }, { id: 'c2' }]);
+  const tx = {
+    task: { findMany: jest.fn(), update: jest.fn() },
+    boardColumn: { findMany: columnsDesc },
+  };
   const prisma = {
     $transaction: jest.fn((arg: unknown) =>
       typeof arg === 'function' ? arg(tx) : Promise.all(arg as unknown[]),
@@ -27,7 +32,7 @@ describe('TasksService', () => {
       create: jest.fn(),
       delete: jest.fn(),
     },
-    boardColumn: { findFirst: jest.fn() },
+    boardColumn: { findFirst: jest.fn(), findMany: columnsDesc },
     organizationMember: { findUnique: jest.fn(), count: jest.fn() },
     taskAssignee: {
       findMany: jest.fn(),
@@ -163,8 +168,24 @@ describe('TasksService', () => {
       await service.move('t1', 'u', { columnId: 'c2', afterTaskId: 'x' });
       expect(tx.task.update).toHaveBeenCalledWith({
         where: { id: 't1' },
-        data: { columnId: 'c2', position: 1500 },
+        data: { columnId: 'c2', position: 1500, completedAt: null },
       });
+    });
+
+    it('entrar na última coluna conclui a tarefa', async () => {
+      prisma.boardColumn.findFirst.mockResolvedValue({ id: 'c3' });
+      tx.task.findMany.mockResolvedValue([]);
+      await service.move('t1', 'u', { columnId: 'c3', afterTaskId: null });
+      const [{ data }] = tx.task.update.mock.calls[0];
+      expect(data.completedAt).toBeInstanceOf(Date);
+    });
+
+    it('reordenar na mesma coluna não mexe na conclusão', async () => {
+      prisma.boardColumn.findFirst.mockResolvedValue({ id: 'c1' });
+      tx.task.findMany.mockResolvedValue([]);
+      await service.move('t1', 'u', { columnId: 'c1', afterTaskId: null });
+      const [{ data }] = tx.task.update.mock.calls[0];
+      expect(data).not.toHaveProperty('completedAt');
     });
 
     it('renumera só a posição das outras tarefas', async () => {
@@ -176,7 +197,10 @@ describe('TasksService', () => {
       await service.move('t1', 'u', { columnId: 'c2', afterTaskId: 'x' });
       expect(tx.task.update.mock.calls.map(([a]) => a)).toEqual([
         { where: { id: 'x' }, data: { position: 1000 } },
-        { where: { id: 't1' }, data: { columnId: 'c2', position: 2000 } },
+        {
+          where: { id: 't1' },
+          data: { columnId: 'c2', position: 2000, completedAt: null },
+        },
         { where: { id: 'y' }, data: { position: 3000 } },
       ]);
     });
