@@ -35,6 +35,7 @@ import {
   TaskPriority,
 } from '../../core/models';
 import { BoardEvent, RealtimeService } from '../../core/realtime.service';
+import { WorkspaceService } from '../../core/workspace.service';
 import { UiService } from '../../shared/dialogs';
 import { PRIORITIES, PriorityLabelPipe } from '../../shared/labels';
 import { BoardStore } from './board.store';
@@ -201,7 +202,7 @@ import { TaskDialogComponent } from './task-dialog.component';
             <section
               cdkDrag
               [cdkDragData]="column"
-              class="flex max-h-full w-72 shrink-0 flex-col rounded-xl bg-slate-100"
+              class="flex max-h-full w-72 shrink-0 flex-col rounded-md bg-[#eceef1]"
               [attr.data-column]="column.name"
             >
               <div
@@ -252,13 +253,14 @@ import { TaskDialogComponent } from './task-dialog.component';
                     cdkDrag
                     [cdkDragData]="task"
                     [task]="task"
+                    [done]="column.id === doneColumnId()"
                     (click)="openTask(task)"
                     class="block cursor-pointer"
                     [attr.data-task]="task.title"
                   >
                     <div
                       *cdkDragPlaceholder
-                      class="h-16 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50"
+                      class="h-14 rounded border border-dashed border-slate-400 bg-slate-200/60"
                     ></div>
                   </app-task-card>
                 }
@@ -268,7 +270,7 @@ import { TaskDialogComponent } from './task-dialog.component';
                 @if (addingTo() === column.id) {
                   <form class="px-2 pb-2" (ngSubmit)="addTask(column.id)">
                     <textarea
-                      class="w-full resize-none rounded-lg border-0 p-2 text-sm shadow-sm ring-1 ring-blue-400 focus:outline-none"
+                      class="w-full resize-none rounded border-0 p-2 text-sm ring-1 ring-slate-400 focus:outline-none"
                       rows="2"
                       placeholder="Título da tarefa"
                       name="title"
@@ -307,7 +309,7 @@ import { TaskDialogComponent } from './task-dialog.component';
 
           @if (!store.readOnly()) {
             <button
-              class="flex w-72 shrink-0 items-center gap-1 rounded-xl border-2 border-dashed border-slate-300 px-3 py-2 text-sm text-slate-500 hover:border-slate-400 hover:text-slate-700"
+              class="flex w-72 shrink-0 items-center gap-1 rounded-md border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-500 hover:border-slate-400 hover:text-slate-700"
               (click)="addColumn()"
             >
               <mat-icon class="!text-lg">add</mat-icon> Nova coluna
@@ -341,8 +343,18 @@ export class BoardComponent {
   readonly taskListIds = computed(() =>
     this.store.sortedColumns().map((c) => c.id),
   );
+  /** Mesma regra do backend: a última coluna (com 2+ colunas) é a de concluídas. */
+  readonly doneColumnId = computed(() => {
+    const cols = this.store.sortedColumns();
+    return cols.length >= 2 ? cols[cols.length - 1].id : null;
+  });
 
   constructor() {
+    const workspace = inject(WorkspaceService);
+    effect(() => {
+      const orgId = this.store.project()?.organizationId;
+      if (orgId) untracked(() => workspace.activeOrgId.set(orgId));
+    });
     effect(() => {
       const id = this.boardId();
       this.store.load(id).catch(async (e) => {
