@@ -8,7 +8,9 @@ import {
   BoardSummary,
   Comment,
   CursorPage,
+  DashboardStats,
   Member,
+  MyDashboard,
   NotificationPage,
   Organization,
   OrganizationRole,
@@ -146,4 +148,11 @@ export class ApiService {
   markAllNotificationsRead = () =>
     this.patch<{ updated: number }>('/notifications/read-all');
   deleteNotification = (id: string) => this.delete(`/notifications/${id}`);
+
+  // Dashboards
+  myDashboard = () => this.get<MyDashboard>('/dashboard');
+  organizationDashboard = (orgId: string) =>
+    this.get<DashboardStats>(`/organizations/${orgId}/dashboard`);
+  projectDashboard = (projectId: string) =>
+    this.get<DashboardStats>(`/projects/${projectId}/dashboard`);
 }

@@ -99,6 +99,8 @@ export interface Task {
   priority: TaskPriority;
   position: number;
   dueDate: string | null;
+  /** Preenchida enquanto a tarefa está na última coluna do quadro. */
+  completedAt: string | null;
   createdById: string;
   createdAt: string;
   updatedAt: string;
@@ -155,4 +157,66 @@ export interface NotificationPage extends CursorPage<AppNotification> {
 export interface Positioned {
   id: string;
   position: number;
+}
+
+// Dashboards
+
+export interface StatTotals {
+  total: number;
+  open: number;
+  completed: number;
+  overdue: number;
+  dueSoon: number;
+  unassigned: number;
+}
+
+export interface DashboardStats {
+  totals: StatTotals;
+  byPriority: { priority: TaskPriority; open: number }[];
+  byMember: {
+    user: UserSummary;
+    open: number;
+    completed: number;
+    overdue: number;
+  }[];
+  weekly: { weekStart: string; created: number; completed: number }[];
+  /** Projetos (na organização) ou quadros (no projeto). */
+  breakdown: {
+    id: string;
+    name: string;
+    total: number;
+    open: number;
+    completed: number;
+    overdue: number;
+  }[];
+}
+
+export interface MyTask {
+  id: string;
+  title: string;
+  priority: TaskPriority;
+  dueDate: string | null;
+  boardId: string;
+  boardName: string;
+  columnName: string;
+  commentCount: number;
+  project: { id: string; name: string };
+  organization: { id: string; name: string };
+}
+
+export interface MyDashboard {
+  totals: {
+    open: number;
+    overdue: number;
+    dueSoon: number;
+    completedThisWeek: number;
+  };
+  tasks: MyTask[];
+  organizations: {
+    id: string;
+    name: string;
+    members: number;
+    projects: number;
+    openTasks: number;
+  }[];
 }

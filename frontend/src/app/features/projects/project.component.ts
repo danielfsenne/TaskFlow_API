@@ -11,12 +11,20 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { BoardSummary, Organization, Project } from '../../core/models';
+import {
+  BoardSummary,
+  DashboardStats,
+  Organization,
+  Project,
+} from '../../core/models';
+import { WorkspaceService } from '../../core/workspace.service';
 import { UiService } from '../../shared/dialogs';
 import { roleAtLeast } from '../../shared/labels';
+import { StatsPanelComponent } from '../dashboard/stats-panel.component';
 
 @Component({
   selector: 'app-project',
@@ -27,37 +35,49 @@ import { roleAtLeast } from '../../shared/labels';
     MatIconModule,
     MatMenuModule,
     MatProgressBarModule,
+    MatTabsModule,
+    StatsPanelComponent,
   ],
   template: `
-    <div class="mx-auto max-w-5xl p-4 sm:p-8">
+    <div class="page">
       @if (project(); as p) {
-        <nav class="mb-2 flex gap-1 text-sm text-slate-500">
-          <a routerLink="/" class="hover:underline">Organizações</a>
-          <span>/</span>
+        <nav class="mb-2 flex items-center gap-1 text-[13px] text-slate-500">
           <a
             [routerLink]="['/orgs', p.organizationId]"
             class="truncate hover:underline"
             >{{ org()?.name }}</a
           >
+          <mat-icon class="!h-4 !w-4 !text-base text-slate-300"
+            >chevron_right</mat-icon
+          >
+          <span class="truncate text-slate-700">{{ p.name }}</span>
         </nav>
 
-        <header class="mb-6 flex items-start justify-between gap-4">
-          <div class="min-w-0">
-            <h1 class="flex items-center gap-2 text-2xl font-semibold">
+        <header class="mb-4 flex items-start gap-3">
+          <div class="min-w-0 flex-1">
+            <h1 class="flex items-center gap-2 text-xl font-semibold text-ink">
               <span class="truncate">{{ p.name }}</span>
               @if (p.archived) {
-                <span
-                  class="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-normal text-amber-800"
+                <span class="chip shrink-0 bg-amber-50 text-amber-800"
                   >Arquivado</span
                 >
               }
             </h1>
             @if (p.description) {
-              <p class="mt-1 whitespace-pre-line text-sm text-slate-600">
+              <p class="mt-0.5 whitespace-pre-line text-[13px] text-slate-500">
                 {{ p.description }}
               </p>
             }
           </div>
+          @if (!p.archived) {
+            <button
+              mat-flat-button
+              (click)="createBoard()"
+              class="!hidden sm:!inline-flex"
+            >
+              Novo quadro
+            </button>
+          }
           @if (canManage() || isAdmin()) {
             <button
               mat-icon-button
@@ -91,50 +111,106 @@ import { roleAtLeast } from '../../shared/labels';
         </header>
 
         @if (p.archived) {
-          <p class="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+          <p
+            class="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800"
+          >
             Este projeto está arquivado: dá para ver tudo, mas nada pode ser
             alterado.
           </p>
         }
 
-        <div class="mb-3 flex items-center justify-between">
-          <h2 class="font-medium">Quadros</h2>
-          @if (!p.archived) {
-            <button mat-stroked-button (click)="createBoard()">
-              <mat-icon>add</mat-icon>Novo quadro
-            </button>
-          }
-        </div>
-
-        @if (boards().length === 0) {
-          <p
-            class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500"
-          >
-            Nenhum quadro ainda. Um quadro novo já vem com as colunas "A fazer",
-            "Em andamento" e "Concluído".
-          </p>
-        } @else {
-          <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            @for (b of boards(); track b.id) {
-              <li>
-                <a
-                  [routerLink]="['/boards', b.id]"
-                  class="block rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:ring-blue-400"
+        <mat-tab-group
+          class="page-tabs"
+          animationDuration="0ms"
+          mat-stretch-tabs="false"
+          mat-align-tabs="start"
+        >
+          <mat-tab label="Quadros">
+            <div class="py-4">
+              @if (!p.archived) {
+                <button
+                  mat-stroked-button
+                  (click)="createBoard()"
+                  class="!mb-3 sm:!hidden"
                 >
-                  <div class="flex items-center gap-2">
-                    <mat-icon class="text-slate-400">view_kanban</mat-icon>
-                    <h3 class="truncate font-medium">{{ b.name }}</h3>
-                  </div>
-                  <p class="mt-2 text-xs text-slate-400">
-                    {{ b._count.columns }} colunas ·
-                    {{ b._count.tasks }} tarefas · criado em
-                    {{ b.createdAt | date: 'shortDate' }}
+                  Novo quadro
+                </button>
+              }
+              @if (boards().length === 0) {
+                <div class="card px-4 py-10 text-center">
+                  <p class="text-[13px] font-medium text-ink">
+                    Nenhum quadro ainda
                   </p>
-                </a>
-              </li>
-            }
-          </ul>
-        }
+                  <p class="mt-1 text-[13px] text-slate-500">
+                    Um quadro novo já vem com as colunas "A fazer", "Em
+                    andamento" e "Concluído".
+                  </p>
+                  @if (!p.archived) {
+                    <button
+                      mat-stroked-button
+                      class="!mt-3"
+                      (click)="createBoard()"
+                    >
+                      Criar quadro
+                    </button>
+                  }
+                </div>
+              } @else {
+                <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  @for (b of boards(); track b.id) {
+                    @let st = progress().get(b.id);
+                    <li>
+                      <a
+                        [routerLink]="['/boards', b.id]"
+                        class="card card-hover block"
+                        [attr.data-board]="b.name"
+                      >
+                        <div class="p-4">
+                          <h3 class="truncate font-medium text-ink">
+                            {{ b.name }}
+                          </h3>
+                          <p class="mt-1 text-xs text-slate-500">
+                            {{ b._count.tasks }}
+                            {{ b._count.tasks === 1 ? 'tarefa' : 'tarefas' }} ·
+                            {{ b._count.columns }} colunas · criado em
+                            {{ b.createdAt | date: 'dd/MM/yyyy' }}
+                          </p>
+                          @if (st && st.total > 0) {
+                            <div
+                              class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"
+                              [attr.title]="
+                                st.completed + ' de ' + st.total + ' concluídas'
+                              "
+                            >
+                              <div
+                                class="h-full rounded-full bg-series-completed"
+                                [style.width.%]="
+                                  (st.completed / st.total) * 100
+                                "
+                              ></div>
+                            </div>
+                          }
+                        </div>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Visão geral">
+            <ng-template matTabContent>
+              <div class="py-4">
+                @if (stats(); as s) {
+                  <app-stats-panel [stats]="s" breakdownKind="boards" />
+                } @else {
+                  <mat-progress-bar mode="indeterminate" />
+                }
+              </div>
+            </ng-template>
+          </mat-tab>
+        </mat-tab-group>
       } @else {
         <mat-progress-bar mode="indeterminate" />
       }
@@ -152,6 +228,11 @@ export class ProjectComponent {
   readonly project = signal<Project | null>(null);
   readonly org = signal<Organization | null>(null);
   readonly boards = signal<BoardSummary[]>([]);
+  readonly stats = signal<DashboardStats | null>(null);
+  private readonly workspace = inject(WorkspaceService);
+  readonly progress = computed(
+    () => new Map((this.stats()?.breakdown ?? []).map((b) => [b.id, b])),
+  );
 
   readonly isAdmin = computed(() => roleAtLeast(this.org()?.role, 'ADMIN'));
   /** Mesma regra do backend: criador do projeto ou ADMIN+. */
@@ -172,7 +253,12 @@ export class ProjectComponent {
         this.api.boards(id),
       ]);
       this.boards.set(boards);
+      this.workspace.activeOrgId.set(project.organizationId);
       this.org.set(await this.api.organization(project.organizationId));
+      this.api.projectDashboard(id).then(
+        (s) => this.stats.set(s),
+        () => undefined,
+      );
       this.project.set(project);
     } catch (e) {
       this.ui.error(e);

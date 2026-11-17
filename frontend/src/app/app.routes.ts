@@ -26,10 +26,10 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        title: 'Organizações · TaskFlow',
+        title: 'Início · TaskFlow',
         loadComponent: () =>
-          import('./features/organizations/organizations.component').then(
-            (m) => m.OrganizationsComponent,
+          import('./features/dashboard/home.component').then(
+            (m) => m.HomeComponent,
           ),
       },
       {

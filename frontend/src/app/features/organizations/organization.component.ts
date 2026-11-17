@@ -14,9 +14,11 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
-import { Organization, Project } from '../../core/models';
+import { DashboardStats, Organization, Project } from '../../core/models';
+import { WorkspaceService } from '../../core/workspace.service';
 import { UiService } from '../../shared/dialogs';
 import { RoleLabelPipe, roleAtLeast } from '../../shared/labels';
+import { StatsPanelComponent } from '../dashboard/stats-panel.component';
 import { MembersComponent } from './members.component';
 
 @Component({
@@ -31,21 +33,31 @@ import { MembersComponent } from './members.component';
     MatTabsModule,
     RoleLabelPipe,
     MembersComponent,
+    StatsPanelComponent,
   ],
   template: `
-    <div class="mx-auto max-w-5xl p-4 sm:p-8">
-      <nav class="mb-2 text-sm text-slate-500">
-        <a routerLink="/" class="hover:underline">Organizações</a>
-      </nav>
-
+    <div class="page">
       @if (org(); as org) {
-        <header class="mb-4 flex items-center justify-between gap-4">
-          <div class="min-w-0">
-            <h1 class="truncate text-2xl font-semibold">{{ org.name }}</h1>
-            <p class="text-sm text-slate-500">
-              Seu papel: {{ org.role | roleLabel }}
+        <header class="mb-4 flex items-start gap-3">
+          <div class="min-w-0 flex-1">
+            <h1 class="truncate text-xl font-semibold text-ink">
+              {{ org.name }}
+            </h1>
+            <p class="text-[13px] text-slate-500">
+              {{ org.role | roleLabel }}
+              @if (org._count) {
+                · {{ org._count.members }}
+                {{ org._count.members === 1 ? 'membro' : 'membros' }}
+              }
             </p>
           </div>
+          <button
+            mat-flat-button
+            (click)="createProject()"
+            class="!hidden sm:!inline-flex"
+          >
+            Novo projeto
+          </button>
           @if (isAdmin()) {
             <button
               mat-icon-button
@@ -68,11 +80,18 @@ import { MembersComponent } from './members.component';
           }
         </header>
 
-        <mat-tab-group animationDuration="0ms" mat-stretch-tabs="false">
+        <mat-tab-group
+          class="page-tabs"
+          animationDuration="0ms"
+          mat-stretch-tabs="false"
+          mat-align-tabs="start"
+          [selectedIndex]="tab()"
+          (selectedIndexChange)="tab.set($event)"
+        >
           <mat-tab label="Projetos">
             <div class="py-4">
               <div
-                class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                class="mb-3 flex flex-wrap items-center justify-between gap-3"
               >
                 <mat-slide-toggle
                   [checked]="showArchived()"
@@ -80,43 +99,100 @@ import { MembersComponent } from './members.component';
                 >
                   Mostrar arquivados
                 </mat-slide-toggle>
-                <button mat-flat-button (click)="createProject()">
-                  <mat-icon>add</mat-icon
-                  ><span class="hidden sm:inline">Novo projeto</span
-                  ><span class="sm:hidden">Novo</span>
+                <button
+                  mat-stroked-button
+                  (click)="createProject()"
+                  class="sm:!hidden"
+                >
+                  <mat-icon>add</mat-icon>Novo
                 </button>
               </div>
 
               @if (loadingProjects()) {
                 <mat-progress-bar mode="indeterminate" />
               } @else if (projects().length === 0) {
-                <p
-                  class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500"
-                >
-                  {{
-                    showArchived()
-                      ? 'Nenhum projeto arquivado.'
-                      : 'Nenhum projeto ainda. Crie o primeiro!'
-                  }}
-                </p>
+                <div class="card px-4 py-10 text-center">
+                  <p class="text-[13px] font-medium text-ink">
+                    {{
+                      showArchived()
+                        ? 'Nenhum projeto arquivado'
+                        : 'Nenhum projeto ainda'
+                    }}
+                  </p>
+                  @if (!showArchived()) {
+                    <button
+                      mat-stroked-button
+                      class="!mt-3"
+                      (click)="createProject()"
+                    >
+                      Criar projeto
+                    </button>
+                  }
+                </div>
               } @else {
                 <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   @for (p of projects(); track p.id) {
+                    @let st = progress().get(p.id);
                     <li>
                       <a
                         [routerLink]="['/projects', p.id]"
-                        class="flex h-full flex-col rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:ring-blue-400"
+                        class="card card-hover flex h-full flex-col p-4"
+                        [attr.data-project]="p.name"
                       >
-                        <h2 class="truncate font-medium">{{ p.name }}</h2>
+                        <div class="flex items-center gap-2">
+                          <h2
+                            class="min-w-0 flex-1 truncate font-medium text-ink"
+                          >
+                            {{ p.name }}
+                          </h2>
+                          @if (p.archived) {
+                            <span class="chip bg-amber-50 text-amber-800"
+                              >Arquivado</span
+                            >
+                          }
+                        </div>
                         <p
-                          class="mt-1 line-clamp-2 flex-1 text-sm text-slate-500"
+                          class="mt-1 line-clamp-2 flex-1 text-[13px] text-slate-500"
                         >
                           {{ p.description || 'Sem descrição' }}
                         </p>
+
+                        @if (st && st.total > 0) {
+                          <div class="mt-3">
+                            <div
+                              class="mb-1 flex justify-between text-xs text-slate-500"
+                            >
+                              <span
+                                >{{ st.completed }}/{{
+                                  st.total
+                                }}
+                                concluídas</span
+                              >
+                              @if (st.overdue) {
+                                <span class="font-medium text-critical"
+                                  >{{ st.overdue }} atrasada{{
+                                    st.overdue > 1 ? 's' : ''
+                                  }}</span
+                                >
+                              }
+                            </div>
+                            <div
+                              class="h-1.5 overflow-hidden rounded-full bg-slate-100"
+                            >
+                              <div
+                                class="h-full rounded-full bg-series-completed"
+                                [style.width.%]="
+                                  (st.completed / st.total) * 100
+                                "
+                              ></div>
+                            </div>
+                          </div>
+                        }
+
                         <p class="mt-3 text-xs text-slate-400">
                           {{ p._count.boards }}
                           {{ p._count.boards === 1 ? 'quadro' : 'quadros' }} ·
-                          criado por {{ p.createdBy.name }}
+                          {{ p.createdBy.name }}
                         </p>
                       </a>
                     </li>
@@ -124,6 +200,18 @@ import { MembersComponent } from './members.component';
                 </ul>
               }
             </div>
+          </mat-tab>
+
+          <mat-tab label="Visão geral">
+            <ng-template matTabContent>
+              <div class="py-4">
+                @if (stats(); as s) {
+                  <app-stats-panel [stats]="s" breakdownKind="projects" />
+                } @else {
+                  <mat-progress-bar mode="indeterminate" />
+                }
+              </div>
+            </ng-template>
           </mat-tab>
 
           <mat-tab label="Membros">
@@ -142,18 +230,31 @@ export class OrganizationComponent {
   private readonly api = inject(ApiService);
   private readonly ui = inject(UiService);
   private readonly router = inject(Router);
+  private readonly workspace = inject(WorkspaceService);
 
   /** Parâmetro de rota. */
   readonly orgId = input.required<string>();
 
   readonly org = signal<Organization | null>(null);
   readonly projects = signal<Project[]>([]);
+  readonly stats = signal<DashboardStats | null>(null);
   readonly loadingProjects = signal(true);
   readonly showArchived = signal(false);
+  readonly tab = signal(0);
   readonly isAdmin = computed(() => roleAtLeast(this.org()?.role, 'ADMIN'));
+  /** Progresso de cada projeto, vindo dos indicadores da organização. */
+  readonly progress = computed(
+    () => new Map((this.stats()?.breakdown ?? []).map((b) => [b.id, b])),
+  );
 
   constructor() {
-    effect(() => void this.loadOrg(this.orgId()));
+    effect(() => {
+      const id = this.orgId();
+      this.workspace.activeOrgId.set(id);
+      this.tab.set(0);
+      void this.loadOrg(id);
+      void this.loadStats(id);
+    });
     effect(() => void this.loadProjects(this.orgId(), this.showArchived()));
   }
 
@@ -164,6 +265,15 @@ export class OrganizationComponent {
     } catch (e) {
       this.ui.error(e);
       await this.router.navigate(['/']);
+    }
+  }
+
+  private async loadStats(id: string) {
+    this.stats.set(null);
+    try {
+      this.stats.set(await this.api.organizationDashboard(id));
+    } catch {
+      // A página continua útil sem os indicadores.
     }
   }
 
@@ -209,6 +319,7 @@ export class OrganizationComponent {
     try {
       const updated = await this.api.updateOrganization(org.id, result.name);
       this.org.set({ ...org, ...updated, role: org.role });
+      void this.workspace.reload();
     } catch (e) {
       this.ui.error(e);
     }
@@ -227,6 +338,7 @@ export class OrganizationComponent {
     try {
       await this.api.deleteOrganization(org.id);
       this.ui.toast('Organização excluída');
+      await this.workspace.reload();
       await this.router.navigate(['/']);
     } catch (e) {
       this.ui.error(e);
