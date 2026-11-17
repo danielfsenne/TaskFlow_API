@@ -14,6 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 import { AccessTokenPayload, RefreshTokenPayload } from './types/auth-user';
 
 const BCRYPT_ROUNDS = 10;
+const ROTATION_GRACE_MS = 30_000;
 // Hash usado quando o e-mail não existe, para o login levar o mesmo tempo.
 const DUMMY_HASH = hashSync(randomUUID(), BCRYPT_ROUNDS);
 
@@ -83,14 +84,22 @@ export class AuthService {
     }
 
     // Revoga de forma atômica; se já estava revogado, é reuso de token.
+    const now = new Date();
     const { count } = await this.prisma.refreshToken.updateMany({
       where: { id: stored.id, revokedAt: null },
-      data: { revokedAt: new Date() },
+      data: { revokedAt: now, rotatedAt: now },
     });
 
     if (count === 0) {
-      await this.revokeAllForUser(stored.userId);
-      throw new UnauthorizedException('Refresh token reutilizado');
+      // Recarregar a página no meio de uma renovação reenvia o token antigo
+      // logo em seguida; isso não é roubo, então há uma pequena tolerância.
+      const recentlyRotated =
+        stored.rotatedAt &&
+        now.getTime() - stored.rotatedAt.getTime() < ROTATION_GRACE_MS;
+      if (!recentlyRotated) {
+        await this.revokeAllForUser(stored.userId);
+        throw new UnauthorizedException('Refresh token reutilizado');
+      }
     }
 
     return this.issueTokens(stored.userId, stored.user.email);
@@ -150,11 +159,19 @@ export class AuthService {
     }
   }
 
-  private revokeAllForUser(userId: string) {
-    return this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+  /** Derruba todas as sessões; também encerra a tolerância de rotação. */
+  private async revokeAllForUser(userId: string) {
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: now },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId, rotatedAt: { not: null } },
+        data: { rotatedAt: null },
+      }),
+    ]);
   }
 
   // O refresh token já tem alta entropia, então SHA-256 basta (e permite busca rápida).
