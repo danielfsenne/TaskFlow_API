@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { BoardsModule } from './boards/boards.module';
 import { CommentsModule } from './comments/comments.module';
 import { validateEnv } from './config/env.validation';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizationsModule } from './organizations/organizations.module';
@@ -39,6 +40,7 @@ import { UsersModule } from './users/users.module';
     BoardsModule,
     TasksModule,
     CommentsModule,
+    DashboardModule,
     RealtimeModule,
   ],
 })
