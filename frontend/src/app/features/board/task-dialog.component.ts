@@ -60,7 +60,7 @@ export interface TaskDialogData {
         <div class="flex items-start gap-2 px-6 pt-5">
           @if (editingTitle()) {
             <input
-              class="flex-1 rounded-md border-0 p-1 text-xl font-semibold ring-1 ring-blue-400 focus:outline-none"
+              class="flex-1 rounded-md border-0 p-1 text-xl font-semibold ring-1 ring-slate-400 focus:outline-none"
               [(ngModel)]="titleDraft"
               (keydown.enter)="saveTitle()"
               (keydown.escape)="editingTitle.set(false)"
@@ -94,7 +94,7 @@ export interface TaskDialogData {
             <h3 class="mb-1 text-sm font-semibold text-slate-700">Descrição</h3>
             @if (editingDescription()) {
               <textarea
-                class="w-full rounded-md border-0 p-2 text-sm ring-1 ring-blue-400 focus:outline-none"
+                class="w-full rounded-md border-0 p-2 text-sm ring-1 ring-slate-400 focus:outline-none"
                 rows="5"
                 [(ngModel)]="descriptionDraft"
                 maxlength="10000"
@@ -139,7 +139,7 @@ export interface TaskDialogData {
             @if (!readOnly()) {
               <div class="mb-3 flex gap-2">
                 <textarea
-                  class="flex-1 rounded-md border-0 p-2 text-sm ring-1 ring-slate-300 focus:outline-none focus:ring-blue-400"
+                  class="flex-1 rounded-md border-0 p-2 text-sm ring-1 ring-slate-300 focus:outline-none focus:ring-slate-400"
                   rows="2"
                   placeholder="Escreva um comentário…"
                   [(ngModel)]="newComment"
@@ -177,7 +177,7 @@ export interface TaskDialogData {
                     </p>
                     @if (editingComment() === c.id) {
                       <textarea
-                        class="mt-1 w-full rounded-md border-0 p-2 text-sm ring-1 ring-blue-400 focus:outline-none"
+                        class="mt-1 w-full rounded-md border-0 p-2 text-sm ring-1 ring-slate-400 focus:outline-none"
                         rows="2"
                         [(ngModel)]="commentDraft"
                         aria-label="Editar comentário"

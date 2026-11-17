@@ -77,7 +77,7 @@ export function describe(n: AppNotification): {
           <span class="font-medium">Notificações</span>
           @if (store.unreadCount() > 0) {
             <button
-              class="text-xs text-blue-700 hover:underline"
+              class="text-xs text-brand-700 hover:underline"
               (click)="store.markAllRead()"
             >
               Marcar todas como lidas
@@ -90,7 +90,7 @@ export function describe(n: AppNotification): {
             @let d = describe(n);
             <li
               class="group flex cursor-pointer gap-3 border-b border-slate-50 px-4 py-3 hover:bg-slate-50"
-              [class.bg-blue-50]="!n.readAt"
+              [class.bg-brand-50]="!n.readAt"
               (click)="open(n)"
               [attr.data-notification]="n.type"
             >
@@ -111,7 +111,7 @@ export function describe(n: AppNotification): {
               <div class="flex flex-col items-center gap-1">
                 @if (!n.readAt) {
                   <span
-                    class="mt-1 h-2 w-2 rounded-full bg-blue-600"
+                    class="mt-1 h-2 w-2 rounded-full bg-brand-600"
                     aria-label="Não lida"
                   ></span>
                 }
@@ -134,7 +134,7 @@ export function describe(n: AppNotification): {
 
         @if (store.nextCursor()) {
           <button
-            class="w-full py-2 text-sm text-blue-700 hover:bg-slate-50"
+            class="w-full py-2 text-sm text-brand-700 hover:bg-slate-50"
             (click)="store.loadMore()"
           >
             Ver mais

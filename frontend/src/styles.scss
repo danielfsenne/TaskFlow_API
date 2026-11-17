@@ -1,6 +1,57 @@
+@use '@angular/material' as mat;
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+$font:
+  system-ui,
+  -apple-system,
+  'Segoe UI',
+  Roboto,
+  'Helvetica Neue',
+  Arial,
+  sans-serif;
+
+html {
+  color-scheme: light;
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$azure-palette,
+      ),
+      typography: (
+        plain-family: $font,
+        brand-family: $font,
+      ),
+      density: 0,
+    )
+  );
+
+  & {
+    // Botões principais em grafite; o azul fica só para links e seleção.
+    --mat-sys-primary: #1f2328;
+    --mat-sys-on-primary: #ffffff;
+    --mat-sys-primary-container: #eef1f4;
+    --mat-sys-on-primary-container: #1f2328;
+    --mat-sys-surface: #ffffff;
+    --mat-sys-surface-container: #ffffff;
+    --mat-sys-surface-container-low: #ffffff;
+    --mat-sys-surface-container-high: #ffffff;
+    --mat-sys-surface-container-highest: #f3f4f6;
+    --mat-sys-outline: #c9ced6;
+    --mat-sys-outline-variant: #e3e6ea;
+
+    --mdc-filled-button-container-shape: 6px;
+    --mdc-outlined-button-container-shape: 6px;
+    --mdc-text-button-container-shape: 6px;
+    --mdc-dialog-container-shape: 8px;
+    --mat-menu-container-shape: 6px;
+    --mdc-outlined-text-field-container-shape: 6px;
+    --mat-tab-header-divider-height: 0;
+  }
+}
 
 html,
 body {
@@ -9,8 +60,9 @@ body {
 
 body {
   margin: 0;
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
-  @apply bg-slate-50 text-slate-800;
+  font-family: $font;
+  font-size: 14px;
+  @apply bg-[#f6f7f9] text-slate-800;
 }
 
 // O reset de bordas do Tailwind (preflight) desenha uma linha no recorte do
@@ -21,13 +73,33 @@ body {
 
 // Campos compactos (filtros da barra do quadro).
 .mat-mdc-form-field.compact {
-  --mat-form-field-container-height: 40px;
-  --mat-form-field-container-vertical-padding: 8px;
-  --mdc-outlined-text-field-container-shape: 8px;
-  font-size: 14px;
+  --mat-form-field-container-height: 36px;
+  --mat-form-field-container-vertical-padding: 6px;
+  --mat-form-field-container-text-size: 13px;
+  --mat-select-trigger-text-size: 13px;
+  font-size: 13px;
 }
 
 // O painel de notificações é mais largo que um menu comum.
 .mat-mdc-menu-panel.notifications-panel {
   max-width: none;
+}
+
+.mat-mdc-tab-group.page-tabs .mat-mdc-tab-header {
+  @apply border-b border-slate-200;
+}
+
+@layer components {
+  .card {
+    @apply rounded-md border border-slate-200 bg-white;
+  }
+  .card-hover {
+    @apply transition-colors hover:border-slate-400;
+  }
+  .page {
+    @apply mx-auto w-full max-w-6xl px-4 py-6 sm:px-6;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs;
+  }
 }

@@ -11,6 +11,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../core/api-error';
 import { AuthService } from '../../core/auth/auth.service';
+import { LogoComponent } from '../../shared/logo.component';
 
 @Component({
   selector: 'app-login',
@@ -21,13 +22,17 @@ import { AuthService } from '../../core/auth/auth.service';
     MatFormFieldModule,
     MatInputModule,
     MatProgressBarModule,
+    LogoComponent,
   ],
   template: `
-    <main class="flex min-h-full items-center justify-center p-4">
+    <main
+      class="flex min-h-full flex-col items-center justify-center gap-5 p-4"
+    >
+      <app-logo [size]="26" />
       <section
-        class="w-full max-w-sm rounded-xl bg-white p-8 shadow-sm ring-1 ring-slate-200"
+        class="w-full max-w-sm rounded-md border border-slate-200 bg-white p-6"
       >
-        <h1 class="mb-1 text-2xl font-semibold">Entrar no TaskFlow</h1>
+        <h1 class="mb-1 text-lg font-semibold text-ink">Entrar no TaskFlow</h1>
         <p class="mb-6 text-sm text-slate-500">Use seu e-mail e senha.</p>
 
         @if (expired()) {
@@ -84,7 +89,7 @@ import { AuthService } from '../../core/auth/auth.service';
           Ainda não tem conta?
           <a
             routerLink="/register"
-            class="font-medium text-blue-700 hover:underline"
+            class="font-medium text-brand-700 hover:underline"
             >Cadastre-se</a
           >
         </p>

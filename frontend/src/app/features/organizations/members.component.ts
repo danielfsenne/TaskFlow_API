@@ -22,13 +22,10 @@ import { Router } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { Member, Organization, OrganizationRole } from '../../core/models';
+import { WorkspaceService } from '../../core/workspace.service';
 import { UiService } from '../../shared/dialogs';
-import {
-  InitialsPipe,
-  outranks,
-  RoleLabelPipe,
-  roleAtLeast,
-} from '../../shared/labels';
+import { AvatarComponent } from '../../shared/avatar.component';
+import { outranks, RoleLabelPipe, roleAtLeast } from '../../shared/labels';
 
 @Component({
   selector: 'app-members',
@@ -41,7 +38,7 @@ import {
     MatMenuModule,
     MatSelectModule,
     RoleLabelPipe,
-    InitialsPipe,
+    AvatarComponent,
   ],
   template: `
     @if (canManage()) {
@@ -49,7 +46,7 @@ import {
         [formGroup]="form"
         #formDir="ngForm"
         (ngSubmit)="add(formDir)"
-        class="mb-4 flex flex-col gap-2 rounded-xl bg-white p-4 ring-1 ring-slate-200 sm:flex-row sm:items-start"
+        class="card mb-4 flex flex-col gap-2 p-4 sm:flex-row sm:items-start"
       >
         <mat-form-field
           appearance="outline"
@@ -82,18 +79,12 @@ import {
       </form>
     }
 
-    <ul
-      class="divide-y divide-slate-100 rounded-xl bg-white ring-1 ring-slate-200"
-    >
+    <ul class="card divide-y divide-slate-100">
       @for (m of members(); track m.id) {
-        <li class="flex items-center gap-3 p-3">
-          <span
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-800"
-          >
-            {{ m.name | initials }}
-          </span>
+        <li class="flex items-center gap-3 px-4 py-2.5">
+          <app-avatar [name]="m.name" [seed]="m.id" [size]="30" />
           <div class="min-w-0 flex-1">
-            <p class="truncate font-medium">
+            <p class="truncate text-[13px] font-medium text-ink">
               {{ m.name }}
               @if (m.id === me()) {
                 <span class="text-xs font-normal text-slate-400">(você)</span>
@@ -101,10 +92,9 @@ import {
             </p>
             <p class="truncate text-xs text-slate-500">{{ m.email }}</p>
           </div>
-          <span
-            class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
-            >{{ m.role | roleLabel }}</span
-          >
+          <span class="chip" [class]="roleClass[m.role]">{{
+            m.role | roleLabel
+          }}</span>
 
           @if (canEdit(m) || (m.id === me() && m.role !== 'OWNER')) {
             <button
@@ -154,7 +144,13 @@ export class MembersComponent implements OnInit {
 
   readonly organization = input.required<Organization>();
 
+  private readonly workspace = inject(WorkspaceService);
   readonly members = signal<Member[]>([]);
+  readonly roleClass: Record<OrganizationRole, string> = {
+    OWNER: 'bg-slate-800 text-white',
+    ADMIN: 'bg-slate-200 text-slate-700',
+    MEMBER: 'bg-slate-100 text-slate-600',
+  };
   readonly adding = signal(false);
   readonly me = computed(() => this.auth.user()?.id);
   readonly myRole = computed(() => this.organization().role);
@@ -241,6 +237,7 @@ export class MembersComponent implements OnInit {
     try {
       await this.api.removeMember(this.organization().id, m.id);
       if (leaving) {
+        await this.workspace.reload();
         await this.router.navigate(['/']);
         return;
       }
