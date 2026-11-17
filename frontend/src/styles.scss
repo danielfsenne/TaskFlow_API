@@ -26,3 +26,8 @@ body {
   --mdc-outlined-text-field-container-shape: 8px;
   font-size: 14px;
 }
+
+// O painel de notificações é mais largo que um menu comum.
+.mat-mdc-menu-panel.notifications-panel {
+  max-width: none;
+}

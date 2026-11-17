@@ -4,7 +4,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
-import { Organization } from '../../core/models';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AppNotification, Organization } from '../../core/models';
+import { RealtimeService } from '../../core/realtime.service';
 import { UiService } from '../../shared/dialogs';
 import { RoleLabelPipe } from '../../shared/labels';
 
@@ -83,7 +85,21 @@ export class OrganizationsComponent implements OnInit {
   readonly organizations = signal<Organization[]>([]);
   readonly loading = signal(true);
 
+  constructor() {
+    // Alguém me adicionou a uma organização: atualiza a lista na hora.
+    inject(RealtimeService)
+      .on<{ notification: AppNotification }>('notification.created')
+      .pipe(takeUntilDestroyed())
+      .subscribe(({ notification }) => {
+        if (notification.type === 'MEMBER_ADDED') void this.reload();
+      });
+  }
+
   async ngOnInit() {
+    await this.reload();
+  }
+
+  private async reload() {
     try {
       this.organizations.set(await this.api.organizations());
     } catch (e) {

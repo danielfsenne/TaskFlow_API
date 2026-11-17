@@ -5,6 +5,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
+import { NotificationsMenuComponent } from './notifications-menu.component';
 
 /** Moldura das telas logadas: barra superior e área de conteúdo. */
 @Component({
@@ -16,6 +17,7 @@ import { AuthService } from '../core/auth/auth.service';
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
+    NotificationsMenuComponent,
   ],
   template: `
     <div class="flex h-full flex-col">
@@ -26,6 +28,7 @@ import { AuthService } from '../core/auth/auth.service';
           >TaskFlow</a
         >
         <span class="flex-1"></span>
+        <app-notifications-menu />
         <button
           mat-button
           [matMenuTriggerFor]="userMenu"
