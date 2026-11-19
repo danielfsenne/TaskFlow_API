@@ -40,3 +40,6 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Capturas de falha dos testes e2e
+/e2e/.output
