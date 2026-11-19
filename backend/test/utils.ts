@@ -1,27 +1,19 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { ConfiguredIoAdapter } from '../src/realtime/socket-io.adapter';
+import { configureApp } from '../src/app.setup';
 
-// mesma configuração do main.ts
+// mesma configuração do main.ts (app.setup)
 export async function createTestApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
   }).compile();
 
   const app = moduleRef.createNestApplication();
-  app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-  app.useWebSocketAdapter(new ConfiguredIoAdapter(app, '*'));
+  configureApp(app);
   await app.init();
   return app;
 }

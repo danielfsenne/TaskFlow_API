@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
@@ -6,7 +7,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { compare, hash, hashSync } from 'bcryptjs';
-import { createHash, randomUUID } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
+import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PublicUser, UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
@@ -15,6 +17,7 @@ import { AccessTokenPayload, RefreshTokenPayload } from './types/auth-user';
 
 const BCRYPT_ROUNDS = 10;
 const ROTATION_GRACE_MS = 30_000;
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 // e-mail inexistente também compara um hash, para não vazar pelo tempo de resposta
 const DUMMY_HASH = hashSync(randomUUID(), BCRYPT_ROUNDS);
 
@@ -34,6 +37,7 @@ export class AuthService {
     private readonly users: UsersService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly mail: MailService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResponse> {
@@ -89,11 +93,12 @@ export class AuthService {
     });
 
     if (count === 0) {
-      // F5 durante o refresh reenvia o token antigo; não é roubo
-      const recentlyRotated =
-        stored.rotatedAt &&
-        now.getTime() - stored.rotatedAt.getTime() < ROTATION_GRACE_MS;
-      if (!recentlyRotated) {
+      // revogado por logout ou troca de senha: só inválido, não é roubo
+      if (!stored.rotatedAt) {
+        throw new UnauthorizedException('Refresh token inválido');
+      }
+      // F5 durante o refresh reenvia o token antigo; também não é roubo
+      if (now.getTime() - stored.rotatedAt.getTime() >= ROTATION_GRACE_MS) {
         await this.revokeAllForUser(stored.userId);
         throw new UnauthorizedException('Refresh token reutilizado');
       }
@@ -112,6 +117,74 @@ export class AuthService {
       where: { id: payload.jti, userId: payload.sub, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  // responde igual exista ou não a conta, para não revelar quem está cadastrado
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.users.findByEmail(email);
+    if (!user) return;
+
+    const token = randomBytes(32).toString('hex');
+    await this.prisma.$transaction([
+      this.prisma.passwordResetToken.deleteMany({
+        where: { userId: user.id, usedAt: null },
+      }),
+      this.prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: this.hashToken(token),
+          expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        },
+      }),
+    ]);
+
+    const link = `${this.config.getOrThrow('APP_URL')}/reset-password?token=${token}`;
+    void this.mail.sendPasswordReset(user.email, user.name, link);
+  }
+
+  async resetPassword(token: string, password: string): Promise<void> {
+    const stored = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash: this.hashToken(token) },
+    });
+    if (!stored || stored.usedAt || stored.expiresAt < new Date()) {
+      throw new BadRequestException('Link inválido ou expirado');
+    }
+
+    // marca como usado de forma atômica: dois envios do mesmo link não passam
+    const { count } = await this.prisma.passwordResetToken.updateMany({
+      where: { id: stored.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    if (count === 0) throw new BadRequestException('Link inválido ou expirado');
+
+    await this.prisma.user.update({
+      where: { id: stored.userId },
+      data: { passwordHash: await hash(password, BCRYPT_ROUNDS) },
+    });
+    await this.revokeAllForUser(stored.userId);
+  }
+
+  // derruba as outras sessões e devolve um par novo para a sessão atual
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<AuthTokens> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
+    if (!(await compare(currentPassword, user.passwordHash))) {
+      throw new BadRequestException('Senha atual incorreta');
+    }
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: await hash(newPassword, BCRYPT_ROUNDS) },
+    });
+    await this.revokeAllForUser(userId);
+    await this.prisma.passwordResetToken.deleteMany({
+      where: { userId, usedAt: null },
+    });
+    return this.issueTokens(user.id, user.email);
   }
 
   private async issueTokens(

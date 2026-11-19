@@ -31,6 +31,15 @@ services:
       timeout: 5s
       retries: 10
 
+  # caixa de e-mail de desenvolvimento: recebe tudo e mostra em http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: taskflow-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   postgres_data:
   redis_data:

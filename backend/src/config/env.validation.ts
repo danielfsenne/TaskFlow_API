@@ -1,10 +1,12 @@
-import { plainToInstance } from 'class-transformer';
+import { plainToInstance, Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Min,
   MinLength,
   validateSync,
 } from 'class-validator';
@@ -53,6 +55,45 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   REDIS_PASSWORD?: string;
+
+  // "false" viraria true com a conversão implícita
+  @Transform(
+    ({ obj }) => obj.TRUST_PROXY === 'true' || obj.TRUST_PROXY === true,
+  )
+  @IsBoolean()
+  TRUST_PROXY: boolean = false;
+
+  // tentativas por minuto, por IP, em login/cadastro/recuperação de senha
+  @IsInt()
+  @Min(1)
+  THROTTLE_AUTH_LIMIT: number = 10;
+
+  // endereço do frontend, usado nos links enviados por e-mail
+  @IsString()
+  APP_URL: string = 'http://localhost:4200';
+
+  @IsString()
+  SMTP_HOST: string = 'localhost';
+
+  @IsInt()
+  SMTP_PORT: number = 1025;
+
+  @IsString()
+  @IsOptional()
+  SMTP_USER?: string;
+
+  @IsString()
+  @IsOptional()
+  SMTP_PASSWORD?: string;
+
+  @IsString()
+  MAIL_FROM: string = 'TaskFlow <nao-responda@taskflow.local>';
+
+  @IsString()
+  UPLOAD_DIR: string = 'uploads';
+
+  @IsString()
+  QUEUE_PREFIX: string = 'bull';
 }
 
 export function validateEnv(config: Record<string, unknown>) {

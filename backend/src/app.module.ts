@@ -1,5 +1,8 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { isAuthLimited } from './auth/auth-throttle';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { BoardsModule } from './boards/boards.module';
@@ -27,6 +30,24 @@ import { UsersModule } from './users/users.module';
           port: config.get<number>('REDIS_PORT'),
           password: config.get<string>('REDIS_PASSWORD') || undefined,
         },
+        // prefixo próprio deixa os testes e2e rodarem junto com a API de dev
+        prefix: config.get<string>('QUEUE_PREFIX'),
+      }),
+    }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        errorMessage: 'Muitas tentativas. Aguarde um minuto e tente de novo.',
+        throttlers: [
+          // teto geral por IP, só contra abuso
+          { name: 'default', ttl: 60_000, limit: 600 },
+          {
+            name: 'auth',
+            ttl: 60_000,
+            limit: config.get<number>('THROTTLE_AUTH_LIMIT', 10),
+            skipIf: (context) => !isAuthLimited(context),
+          },
+        ],
       }),
     }),
     PrismaModule,
@@ -43,5 +64,6 @@ import { UsersModule } from './users/users.module';
     DashboardModule,
     RealtimeModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
