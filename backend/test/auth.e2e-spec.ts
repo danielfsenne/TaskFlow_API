@@ -57,7 +57,17 @@ describe('Auth (e2e)', () => {
       .expect(200);
     expect(refreshed.body.refreshToken).not.toBe(login.body.refreshToken);
 
-    // Reuso do token antigo revoga toda a sessão.
+    // logo após a rotação (F5 durante o refresh) o token antigo ainda vale
+    await http()
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: login.body.refreshToken })
+      .expect(200);
+
+    // passada a tolerância, reuso derruba todas as sessões
+    await prisma.refreshToken.updateMany({
+      where: { user: { email }, rotatedAt: { not: null } },
+      data: { rotatedAt: new Date(Date.now() - 60_000) },
+    });
     await http()
       .post('/api/v1/auth/refresh')
       .send({ refreshToken: login.body.refreshToken })
