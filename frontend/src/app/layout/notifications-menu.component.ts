@@ -7,7 +7,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { AppNotification } from '../core/models';
 import { NotificationsStore } from '../core/notifications.store';
-import { InitialsPipe } from '../shared/labels';
+import { AvatarComponent } from '../shared/avatar.component';
 import { RelativeTimePipe } from '../shared/relative-time.pipe';
 
 export function describe(n: AppNotification): {
@@ -43,7 +43,7 @@ export function describe(n: AppNotification): {
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
-    InitialsPipe,
+    AvatarComponent,
     RelativeTimePipe,
   ],
   template: `
@@ -93,11 +93,12 @@ export function describe(n: AppNotification): {
               (click)="open(n)"
               [attr.data-notification]="n.type"
             >
-              <span
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-medium"
-              >
-                {{ n.payload.actor?.name | initials }}
-              </span>
+              <app-avatar
+                [name]="n.payload.actor?.name ?? '?'"
+                [url]="n.payload.actor?.avatarUrl"
+                [seed]="n.payload.actor?.id"
+                [size]="32"
+              />
               <div class="min-w-0 flex-1">
                 <p class="text-sm leading-snug">{{ d.text }}</p>
                 @if (d.detail) {

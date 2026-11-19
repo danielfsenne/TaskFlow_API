@@ -6,6 +6,7 @@ export function apiErrorMessage(
 ): string {
   if (!(error instanceof HttpErrorResponse)) return fallback;
   if (error.status === 0) return 'Não foi possível falar com o servidor.';
+  if (error.status === 413) return 'Arquivo grande demais.';
   const message = (error.error as { message?: unknown } | null)?.message;
   if (Array.isArray(message)) return message.join('. ');
   if (typeof message === 'string' && message) return message;

@@ -82,7 +82,12 @@ import { outranks, RoleLabelPipe, roleAtLeast } from '../../shared/labels';
     <ul class="card divide-y divide-slate-100">
       @for (m of members(); track m.id) {
         <li class="flex items-center gap-3 px-4 py-2.5">
-          <app-avatar [name]="m.name" [seed]="m.id" [size]="30" />
+          <app-avatar
+            [name]="m.name"
+            [url]="m.avatarUrl"
+            [seed]="m.id"
+            [size]="30"
+          />
           <div class="min-w-0 flex-1">
             <p class="truncate text-[13px] font-medium text-ink">
               {{ m.name }}

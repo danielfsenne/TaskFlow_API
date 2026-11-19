@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, effect, input, signal } from '@angular/core';
 import { InitialsPipe } from './labels';
 
 const TONES = [
@@ -23,18 +23,40 @@ export function toneFor(key: string | undefined | null) {
   imports: [InitialsPipe],
   host: {
     class:
-      'inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold',
-    '[class]': 'tone()',
+      'inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full font-semibold',
+    '[class]': 'showImage() ? "bg-slate-100" : tone()',
     '[style.width.px]': 'size()',
     '[style.height.px]': 'size()',
     '[style.font-size.px]': 'size() * 0.4',
     '[attr.title]': 'name()',
   },
-  template: `{{ name() | initials }}`,
+  template: `
+    @if (showImage()) {
+      <img
+        [src]="url()"
+        alt=""
+        class="h-full w-full object-cover"
+        (error)="failed.set(true)"
+      />
+    } @else {
+      {{ name() | initials }}
+    }
+  `,
 })
 export class AvatarComponent {
   readonly name = input<string | null | undefined>('');
+  readonly url = input<string | null | undefined>(null);
   readonly seed = input<string | null | undefined>(undefined);
   readonly size = input(32);
   readonly tone = computed(() => toneFor(this.seed() ?? this.name()));
+  readonly failed = signal(false);
+  readonly showImage = computed(() => !!this.url() && !this.failed());
+
+  constructor() {
+    // outra URL: tenta carregar de novo
+    effect(() => {
+      this.url();
+      this.failed.set(false);
+    });
+  }
 }

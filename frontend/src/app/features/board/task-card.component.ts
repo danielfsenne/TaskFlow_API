@@ -55,6 +55,7 @@ import { PRIORITY_CLASSES, PriorityLabelPipe } from '../../shared/labels';
             <app-avatar
               class="ring-2 ring-white"
               [name]="a.name"
+              [url]="a.avatarUrl"
               [seed]="a.id"
               [size]="22"
               [matTooltip]="a.name"

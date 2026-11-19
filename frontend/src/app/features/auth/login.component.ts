@@ -76,6 +76,11 @@ import { LogoComponent } from '../../shared/logo.component';
               autocomplete="current-password"
             />
           </mat-form-field>
+          <a
+            routerLink="/forgot-password"
+            class="-mt-3 mb-2 self-end text-xs text-brand-700 hover:underline"
+            >Esqueci minha senha</a
+          >
 
           @if (loading()) {
             <mat-progress-bar mode="indeterminate" />

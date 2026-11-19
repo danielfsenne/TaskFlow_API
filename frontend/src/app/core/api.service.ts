@@ -17,6 +17,8 @@ import {
   Project,
   Task,
   TaskPriority,
+  TokenPair,
+  User,
 } from './models';
 
 const API = '/api/v1';
@@ -147,6 +149,22 @@ export class ApiService {
   markAllNotificationsRead = () =>
     this.patch<{ updated: number }>('/notifications/read-all');
   deleteNotification = (id: string) => this.delete(`/notifications/${id}`);
+
+  // Conta
+  updateProfile = (name: string) => this.patch<User>('/users/me', { name });
+  uploadAvatar = (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return this.put<User>('/users/me/avatar', form);
+  };
+  removeAvatar = () =>
+    this.run(this.http.delete<User>(`${API}/users/me/avatar`));
+  changePassword = (currentPassword: string, newPassword: string) =>
+    this.patch<TokenPair>('/auth/password', { currentPassword, newPassword });
+  forgotPassword = (email: string) =>
+    this.post<void>('/auth/forgot-password', { email });
+  resetPassword = (token: string, password: string) =>
+    this.post<void>('/auth/reset-password', { token, password });
 
   // Dashboards
   myDashboard = () => this.get<MyDashboard>('/dashboard');

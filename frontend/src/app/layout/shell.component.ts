@@ -128,6 +128,7 @@ import { NotificationsMenuComponent } from './notifications-menu.component';
           >
             <app-avatar
               [name]="auth.user()?.name"
+              [url]="auth.user()?.avatarUrl"
               [seed]="auth.user()?.id"
               [size]="26"
             />
@@ -139,6 +140,10 @@ import { NotificationsMenuComponent } from './notifications-menu.component';
             <div class="px-4 py-2 text-xs text-slate-500">
               {{ auth.user()?.email }}
             </div>
+            <a mat-menu-item routerLink="/profile">
+              <mat-icon>person</mat-icon>
+              Meu perfil
+            </a>
             <button mat-menu-item (click)="auth.logout()">
               <mat-icon>logout</mat-icon>
               Sair

@@ -19,6 +19,24 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'forgot-password',
+    canActivate: [guestGuard],
+    title: 'Esqueci minha senha · TaskFlow',
+    loadComponent: () =>
+      import('./features/auth/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent,
+      ),
+  },
+  {
+    // sem guard: o link do e-mail pode ser aberto logado ou não
+    path: 'reset-password',
+    title: 'Nova senha · TaskFlow',
+    loadComponent: () =>
+      import('./features/auth/reset-password.component').then(
+        (m) => m.ResetPasswordComponent,
+      ),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -30,6 +48,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/dashboard/home.component').then(
             (m) => m.HomeComponent,
+          ),
+      },
+      {
+        path: 'profile',
+        title: 'Meu perfil · TaskFlow',
+        loadComponent: () =>
+          import('./features/account/profile.component').then(
+            (m) => m.ProfileComponent,
           ),
       },
       {

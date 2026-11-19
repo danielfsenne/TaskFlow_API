@@ -26,11 +26,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiService } from '../../core/api.service';
 import { Comment, TaskPriority } from '../../core/models';
 import { UiService } from '../../shared/dialogs';
-import {
-  InitialsPipe,
-  PRIORITIES,
-  PriorityLabelPipe,
-} from '../../shared/labels';
+import { AvatarComponent } from '../../shared/avatar.component';
+import { PRIORITIES, PriorityLabelPipe } from '../../shared/labels';
 import { BoardStore } from './board.store';
 
 export interface TaskDialogData {
@@ -54,7 +51,7 @@ export interface TaskDialogData {
     MatSelectModule,
     MatTooltipModule,
     PriorityLabelPipe,
-    InitialsPipe,
+    AvatarComponent,
   ],
   template: `
     @if (task(); as t) {
@@ -161,11 +158,12 @@ export interface TaskDialogData {
             <ul class="flex flex-col gap-3">
               @for (c of comments(); track c.id) {
                 <li class="flex gap-2" [attr.data-comment]="c.id">
-                  <span
-                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-medium text-blue-800"
-                  >
-                    {{ c.author.name | initials }}
-                  </span>
+                  <app-avatar
+                    [name]="c.author.name"
+                    [url]="c.author.avatarUrl"
+                    [seed]="c.author.id"
+                    [size]="28"
+                  />
                   <div class="min-w-0 flex-1">
                     <p class="text-xs text-slate-500">
                       <strong class="text-slate-700">{{

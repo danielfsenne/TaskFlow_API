@@ -107,6 +107,16 @@ export class AuthService {
     }
   }
 
+  // perfil atualizado em outra tela (nome, foto)
+  updateUser(user: User) {
+    this._user.set(user);
+  }
+
+  // troca de senha devolve um par novo; as outras sessões já caíram
+  replaceTokens(pair: TokenPair) {
+    this.setTokens(pair);
+  }
+
   private start(res: AuthResponse) {
     this.setTokens(res);
     this._user.set(res.user);
