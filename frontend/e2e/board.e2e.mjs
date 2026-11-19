@@ -9,6 +9,7 @@ import {
   register,
   sleep,
   suite,
+  waitFor,
   watchErrors,
 } from './support.mjs';
 
@@ -93,6 +94,40 @@ try {
   t.ok(
     'tarefa criada na coluna',
     (await titlesIn('Em andamento')).includes('Revisar acessibilidade'),
+  );
+
+  // abrir o campo de novo: o foco tem que ir para ele sem clicar no campo
+  await clickButton(
+    page,
+    'Adicionar tarefa',
+    'section[@data-column="Concluído"]',
+  );
+  await page.waitForSelector('section[data-column="Concluído"] textarea');
+  await page.keyboard.type('Digitada direto');
+  await page.keyboard.press('Enter');
+  t.ok(
+    'campo de nova tarefa recebe o foco',
+    await page
+      .waitForSelector('app-task-card[data-task="Digitada direto"]', {
+        timeout: 3000,
+      })
+      .then(
+        () => true,
+        () => false,
+      ),
+  );
+  await page.keyboard.press('Escape');
+  t.ok(
+    'Esc fecha o campo',
+    await waitFor(page, () => !document.querySelector('section textarea')),
+  );
+  await api(
+    'DELETE',
+    `/tasks/${(await tasksInApi()).find((x) => x.title === 'Digitada direto').id}`,
+    me.token,
+  );
+  await page.waitForFunction(
+    () => !document.querySelector('app-task-card[data-task="Digitada direto"]'),
   );
 
   const target = await boxOf(

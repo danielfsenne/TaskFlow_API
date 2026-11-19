@@ -40,6 +40,7 @@ import { UiService } from '../../shared/dialogs';
 import { PRIORITIES, PriorityLabelPipe } from '../../shared/labels';
 import { BoardStore } from './board.store';
 import { TaskCardComponent } from './task-card.component';
+import { FocusOnRenderDirective } from '../../shared/focus-on-render.directive';
 import { TaskDialogComponent } from './task-dialog.component';
 
 @Component({
@@ -62,6 +63,7 @@ import { TaskDialogComponent } from './task-dialog.component';
     MatTooltipModule,
     PriorityLabelPipe,
     TaskCardComponent,
+    FocusOnRenderDirective,
   ],
   styles: `
     :host {
@@ -279,7 +281,7 @@ import { TaskDialogComponent } from './task-dialog.component';
                         $event.preventDefault(); addTask(column.id)
                       "
                       (keydown.escape)="addingTo.set(null)"
-                      autofocus
+                      appFocusOnRender
                     ></textarea>
                     <div class="mt-1 flex gap-1">
                       <button mat-flat-button type="submit" class="!h-8">

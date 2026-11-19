@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { FocusOnRenderDirective } from '../../shared/focus-on-render.directive';
 import {
   Component,
   computed,
@@ -41,6 +42,7 @@ export interface TaskDialogData {
   providers: [provideNativeDateAdapter()],
   imports: [
     DatePipe,
+    FocusOnRenderDirective,
     FormsModule,
     MatButtonModule,
     MatDatepickerModule,
@@ -67,7 +69,7 @@ export interface TaskDialogData {
               (blur)="saveTitle()"
               maxlength="200"
               aria-label="Título da tarefa"
-              autofocus
+              appFocusOnRender
             />
           } @else {
             <h2

@@ -52,11 +52,10 @@ try {
   pb = await openAs(beto);
   await sleep(800);
 
+  // o campo aparece no quadro seguinte ao clique (eventCoalescing), não na hora
   const newTask = 'section[data-column="A fazer"] textarea';
-  for (let i = 0; i < 3 && !(await pa.$(newTask)); i++) {
-    await clickButton(pa, 'Adicionar tarefa', 'section[@data-column="A fazer"]');
-    await pa.waitForSelector(newTask, { timeout: 2000 }).catch(() => {});
-  }
+  await clickButton(pa, 'Adicionar tarefa', 'section[@data-column="A fazer"]');
+  await pa.waitForSelector(newTask);
   await pa.type(newTask, 'Criada pela Ana');
   await pa.keyboard.press('Enter');
   t.ok(
