@@ -41,7 +41,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-O PostgreSQL fica na porta **5433** (para não brigar com um Postgres local na 5432) e o Redis na **6379**.
+O PostgreSQL fica na porta **5433** (para não brigar com um Postgres local na 5432) e o Redis na **6379**. O compose também sobe o **Mailpit**, uma caixa de e-mail de desenvolvimento: os e-mails do app (como o de redefinição de senha) aparecem em http://localhost:8025.
 
 ### 2. Backend
 
@@ -89,8 +89,17 @@ API_URL=http://localhost:3100 npm start
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | troque | Assinatura dos tokens |
 | `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | `15m` / `7d` | Validade dos tokens |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | `localhost` / `6379` / vazio | Fila de notificações (BullMQ) |
+| `THROTTLE_AUTH_LIMIT` | `10` | Tentativas por minuto, por IP, em login, cadastro e recuperação de senha |
+| `TRUST_PROXY` | `false` | `true` atrás de nginx ou load balancer, para o limite usar o IP real |
+| `APP_URL` | `http://localhost:4200` | Endereço do frontend usado no link de redefinição de senha |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Mailpit (`localhost` / `1025`) | Envio de e-mails |
+| `MAIL_FROM` | `TaskFlow <nao-responda@taskflow.local>` | Remetente dos e-mails |
+| `UPLOAD_DIR` | `uploads` | Pasta das fotos de perfil |
 
 ### Problemas comuns
+
+- **"Muitas tentativas" no login**: o limite é de 10 por minuto por IP. Espere um minuto ou aumente `THROTTLE_AUTH_LIMIT` no `backend/.env`.
+- **E-mail de redefinição não chega**: em desenvolvimento ele vai para o Mailpit (http://localhost:8025), não para a caixa real. Em produção, configure as variáveis `SMTP_*`.
 
 - **`EADDRINUSE` na porta 3000**: outro programa (às vezes o próprio Docker Desktop) está usando a porta. Rode a API em outra, por exemplo `PORT=3100 npm run start:dev`, e o frontend com `API_URL=http://localhost:3100 npm start`.
 - **Notificações não chegam**: confira se o Redis está de pé (`docker compose ps`). Sem ele a API continua funcionando e as notificações ficam guardadas na memória até o Redis voltar; se a API reiniciar nesse meio-tempo, elas se perdem.
@@ -101,6 +110,8 @@ API_URL=http://localhost:3100 npm start
 - Organizações têm papéis **Dono**, **Admin** e **Membro**. Projetos, quadros e tarefas herdam o acesso da organização; quem não é membro recebe 404.
 - Uma tarefa conta como **concluída** quando está na última coluna do quadro. É essa regra que alimenta os dashboards.
 - Projetos arquivados ficam somente leitura.
+- Login, cadastro e recuperação de senha têm limite de tentativas por IP. Redefinir ou trocar a senha encerra as sessões abertas em outros aparelhos.
+- As fotos de perfil ficam em `backend/uploads/` e são servidas pela própria API. Com mais de uma instância da API, essa pasta precisa ser compartilhada (ou trocada por um storage como o S3).
 - O quadro é sincronizado ao vivo via Socket.IO entre todos que estão com ele aberto; as notificações chegam pelo sino sem recarregar a página.
 
 ## Testes
@@ -115,7 +126,9 @@ cd backend && npm test
 cd backend && npm run test:e2e
 
 # Frontend: e2e no navegador (Chrome instalado)
-# com a API e o `ng serve` rodando
+# com a API e o `ng serve` rodando, e a API com limite alto de tentativas,
+# porque as suítes criam vários usuários por minuto:
+#   cd backend && THROTTLE_AUTH_LIMIT=200 npm run start:dev
 cd frontend && npm run e2e          # todas as suítes
 cd frontend && npm run e2e board    # só as que têm "board" no nome
 ```
