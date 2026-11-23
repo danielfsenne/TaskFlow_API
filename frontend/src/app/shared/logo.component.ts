@@ -10,10 +10,10 @@ import { Component, input } from '@angular/core';
       [attr.height]="size()"
       aria-hidden="true"
     >
-      <rect width="32" height="32" rx="5" fill="#1f2328" />
-      <rect x="7" y="8" width="5" height="16" rx="1" fill="#fff" />
-      <rect x="13.5" y="8" width="5" height="11" rx="1" fill="#fff" />
-      <rect x="20" y="8" width="5" height="7" rx="1" fill="#fff" />
+      <rect width="32" height="32" rx="5" class="fill-ink" />
+      <rect x="7" y="8" width="5" height="16" rx="1" class="fill-white" />
+      <rect x="13.5" y="8" width="5" height="11" rx="1" class="fill-white" />
+      <rect x="20" y="8" width="5" height="7" rx="1" class="fill-white" />
     </svg>
     @if (withName()) {
       <span class="text-[15px] font-semibold text-ink">TaskFlow</span>

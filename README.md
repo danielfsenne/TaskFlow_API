@@ -113,6 +113,7 @@ API_URL=http://localhost:3100 npm start
 - Projetos arquivados ficam somente leitura.
 - Login, cadastro e recuperação de senha têm limite de tentativas por IP. Redefinir ou trocar a senha encerra as sessões abertas em outros aparelhos.
 - Fotos de perfil e anexos ficam em `backend/uploads/` e são servidos pela própria API. Anexos exigem login e, fora imagens comuns, sempre baixam (nunca abrem no navegador). Com mais de uma instância da API, essa pasta precisa ser compartilhada (ou trocada por um storage como o S3).
+- Tema claro, escuro ou igual ao sistema, no menu do usuário (a escolha fica salva no navegador).
 - O quadro é sincronizado ao vivo via Socket.IO entre todos que estão com ele aberto; as notificações chegam pelo sino sem recarregar a página.
 
 ## Testes

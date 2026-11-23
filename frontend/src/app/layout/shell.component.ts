@@ -14,6 +14,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth/auth.service';
+import { ThemeChoice, ThemeService } from '../core/theme.service';
 import { WorkspaceService } from '../core/workspace.service';
 import { AvatarComponent } from '../shared/avatar.component';
 import { UiService } from '../shared/dialogs';
@@ -148,10 +149,28 @@ import { SearchBoxComponent } from './search-box.component';
               <mat-icon>person</mat-icon>
               Meu perfil
             </a>
+            <button mat-menu-item [matMenuTriggerFor]="themeMenu">
+              <mat-icon>contrast</mat-icon>
+              Tema
+            </button>
             <button mat-menu-item (click)="auth.logout()">
               <mat-icon>logout</mat-icon>
               Sair
             </button>
+          </mat-menu>
+          <mat-menu #themeMenu="matMenu">
+            @for (o of themeOptions; track o.value) {
+              <button
+                mat-menu-item
+                (click)="theme.set(o.value)"
+                [attr.data-theme-option]="o.value"
+              >
+                <mat-icon>{{
+                  theme.choice() === o.value ? 'check' : o.icon
+                }}</mat-icon>
+                {{ o.label }}
+              </button>
+            }
           </mat-menu>
         </header>
 
@@ -165,6 +184,13 @@ import { SearchBoxComponent } from './search-box.component';
 export class ShellComponent {
   readonly auth = inject(AuthService);
   readonly workspace = inject(WorkspaceService);
+  readonly theme = inject(ThemeService);
+  readonly themeOptions: { value: ThemeChoice; label: string; icon: string }[] =
+    [
+      { value: 'light', label: 'Claro', icon: 'light_mode' },
+      { value: 'dark', label: 'Escuro', icon: 'dark_mode' },
+      { value: 'system', label: 'Igual ao sistema', icon: 'computer' },
+    ];
   private readonly api = inject(ApiService);
   private readonly ui = inject(UiService);
   private readonly router = inject(Router);

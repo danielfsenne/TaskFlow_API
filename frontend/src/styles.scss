@@ -1,3 +1,4 @@
+@use 'sass:list';
 @use '@angular/material' as mat;
 
 @tailwind base;
@@ -15,10 +16,11 @@ $font:
 
 html {
   color-scheme: light;
+  // color-scheme: os tokens do Material seguem o "color-scheme" do html
   @include mat.theme(
     (
       color: (
-        theme-type: light,
+        theme-type: color-scheme,
         primary: mat.$azure-palette,
       ),
       typography: (
@@ -30,17 +32,39 @@ html {
   );
 
   & {
-    --mat-sys-primary: #1f2328;
-    --mat-sys-on-primary: #ffffff;
+    // neutros em "R G B", usados pelo Tailwind (tailwind.config.js)
+    --white: 255 255 255;
+    --page: 246 247 249;
+    --column: 236 238 241;
+    --slate-50: 248 250 252;
+    --slate-100: 241 245 249;
+    --slate-200: 226 232 240;
+    --slate-300: 203 213 225;
+    --slate-400: 148 163 184;
+    --slate-500: 100 116 139;
+    --slate-600: 71 85 105;
+    --slate-700: 51 65 85;
+    --slate-800: 30 41 59;
+    --slate-900: 15 23 42;
+    --slate-950: 2 6 23;
+    --ink: 31 35 40;
+    --brand-700: 29 69 191;
+    --critical: 208 59 59;
+    // séries validadas para daltonismo, um passo por tema
+    --series-created: 42 120 214;
+    --series-completed: 27 175 122;
+
+    --mat-sys-primary: rgb(var(--ink));
+    --mat-sys-on-primary: rgb(var(--white));
     --mat-sys-primary-container: #eef1f4;
-    --mat-sys-on-primary-container: #1f2328;
-    --mat-sys-surface: #ffffff;
-    --mat-sys-surface-container: #ffffff;
-    --mat-sys-surface-container-low: #ffffff;
-    --mat-sys-surface-container-high: #ffffff;
-    --mat-sys-surface-container-highest: #f3f4f6;
+    --mat-sys-on-primary-container: rgb(var(--ink));
+    --mat-sys-surface: rgb(var(--white));
+    --mat-sys-surface-container: rgb(var(--white));
+    --mat-sys-surface-container-low: rgb(var(--white));
+    --mat-sys-surface-container-high: rgb(var(--white));
+    --mat-sys-surface-container-highest: rgb(var(--slate-100));
     --mat-sys-outline: #c9ced6;
-    --mat-sys-outline-variant: #e3e6ea;
+    --mat-sys-outline-variant: rgb(var(--slate-200));
 
     --mdc-filled-button-container-shape: 6px;
     --mdc-outlined-button-container-shape: 6px;
@@ -52,6 +76,76 @@ html {
   }
 }
 
+html.dark {
+  color-scheme: dark;
+  --white: 22 27 34;
+  --page: 13 17 23;
+  --column: 22 27 34;
+  --slate-50: 28 33 40;
+  --slate-100: 33 38 45;
+  --slate-200: 48 54 61;
+  --slate-300: 72 79 88;
+  --slate-400: 110 118 129;
+  --slate-500: 139 148 158;
+  --slate-600: 166 173 181;
+  --slate-700: 201 209 217;
+  --slate-800: 220 226 232;
+  --slate-900: 236 240 244;
+  --slate-950: 246 248 250;
+  --ink: 230 237 243;
+  --brand-700: 121 168 255;
+  --critical: 248 113 113;
+  --series-created: 57 135 229;
+  --series-completed: 25 158 112;
+
+  --mat-sys-primary-container: rgb(var(--slate-100));
+  --mat-sys-on-primary: rgb(var(--page));
+  --mat-sys-outline: rgb(var(--slate-300));
+  --mat-sys-on-surface: rgb(var(--ink));
+  --mat-sys-on-surface-variant: rgb(var(--slate-600));
+}
+
+// tons claros de alerta, prioridade e etiqueta ficam translúcidos no escuro
+$tints: 'red', 'orange', 'amber', 'yellow', 'green', 'emerald', 'teal', 'sky',
+  'blue', 'indigo', 'violet', 'purple', 'pink', 'rose';
+@each $c in $tints {
+  html.dark .bg-#{$c}-50,
+  html.dark .bg-#{$c}-100 {
+    background-color: color-mix(
+      in srgb,
+      theme('colors.#{$c}.400') 18%,
+      transparent
+    );
+  }
+  html.dark .text-#{$c}-600,
+  html.dark .text-#{$c}-700,
+  html.dark .text-#{$c}-800,
+  html.dark .text-#{$c}-900 {
+    color: theme('colors.#{$c}.300');
+  }
+  html.dark .border-#{$c}-200 {
+    border-color: color-mix(
+      in srgb,
+      theme('colors.#{$c}.400') 35%,
+      transparent
+    );
+  }
+}
+// variantes com ! (ex.: !text-red-700 em botões do Material)
+html.dark .\!text-red-700 {
+  color: theme('colors.red.300') !important;
+}
+// campos sem fundo próprio herdariam o cinza padrão do navegador;
+// :where zera a especificidade para classes como bg-slate-50 valerem
+:where(html.dark)
+  :where(textarea, input:not([type='checkbox'], [type='radio'])) {
+  background-color: rgb(var(--white));
+  color: rgb(var(--ink));
+}
+html.dark .bg-brand-50 {
+  background-color: color-mix(in srgb, #5f91fa 18%, transparent);
+}
+
 html,
 body {
   height: 100%;
@@ -61,7 +155,7 @@ body {
   margin: 0;
   font-family: $font;
   font-size: 14px;
-  @apply bg-[#f6f7f9] text-slate-800;
+  @apply bg-page text-slate-800;
 }
 
 // preflight do Tailwind risca o rótulo dos campos outline do Material

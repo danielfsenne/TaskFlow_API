@@ -232,7 +232,7 @@ import { TaskDialogComponent } from './task-dialog.component';
             <section
               cdkDrag
               [cdkDragData]="column"
-              class="flex max-h-full w-72 shrink-0 flex-col rounded-md bg-[#eceef1]"
+              class="flex max-h-full w-72 shrink-0 flex-col rounded-md bg-column"
               [attr.data-column]="column.name"
             >
               <div
