@@ -19,6 +19,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { RealtimeCoreModule } from './realtime/realtime-core.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { RemindersModule } from './reminders/reminders.module';
+import { SearchModule } from './search/search.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
 
@@ -67,6 +68,7 @@ import { UsersModule } from './users/users.module';
     CommentsModule,
     AttachmentsModule,
     DashboardModule,
+    SearchModule,
     RemindersModule,
     RealtimeModule,
   ],
