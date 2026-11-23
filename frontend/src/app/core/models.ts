@@ -143,7 +143,8 @@ export interface CursorPage<T> {
 export type NotificationType =
   | 'MEMBER_ADDED'
   | 'TASK_ASSIGNED'
-  | 'TASK_COMMENTED';
+  | 'TASK_COMMENTED'
+  | 'TASK_DUE_SOON';
 
 export interface AppNotification {
   id: string;
@@ -161,6 +162,7 @@ export interface AppNotification {
     projectName?: string;
     commentId?: string;
     excerpt?: string;
+    dueDate?: string;
   };
   readAt: string | null;
   createdAt: string;

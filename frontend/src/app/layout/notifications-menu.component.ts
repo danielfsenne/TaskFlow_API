@@ -10,6 +10,22 @@ import { NotificationsStore } from '../core/notifications.store';
 import { AvatarComponent } from '../shared/avatar.component';
 import { RelativeTimePipe } from '../shared/relative-time.pipe';
 
+// "hoje às 18:00", "amanhã às 09:30" ou "em 25/11 às 14:00"
+export function dueLabel(iso: string | undefined, now = new Date()): string {
+  if (!iso) return 'em breve';
+  const due = new Date(iso);
+  const time = due.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const day = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((day(due) - day(now)) / 86_400_000);
+  if (diff === 0) return `hoje às ${time}`;
+  if (diff === 1) return `amanhã às ${time}`;
+  return `em ${due.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${time}`;
+}
+
 export function describe(n: AppNotification): {
   text: string;
   detail?: string;
@@ -29,6 +45,11 @@ export function describe(n: AppNotification): {
       return {
         text: `${who} comentou em "${n.payload.taskTitle}"`,
         detail: n.payload.excerpt,
+      };
+    case 'TASK_DUE_SOON':
+      return {
+        text: `"${n.payload.taskTitle}" vence ${dueLabel(n.payload.dueDate)}`,
+        detail: n.payload.projectName,
       };
     default:
       return { text: 'Nova notificação' };
@@ -93,12 +114,20 @@ export function describe(n: AppNotification): {
               (click)="open(n)"
               [attr.data-notification]="n.type"
             >
-              <app-avatar
-                [name]="n.payload.actor?.name ?? '?'"
-                [url]="n.payload.actor?.avatarUrl"
-                [seed]="n.payload.actor?.id"
-                [size]="32"
-              />
+              @if (n.payload.actor) {
+                <app-avatar
+                  [name]="n.payload.actor.name"
+                  [url]="n.payload.actor.avatarUrl"
+                  [seed]="n.payload.actor.id"
+                  [size]="32"
+                />
+              } @else {
+                <span
+                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-700"
+                >
+                  <mat-icon class="!text-lg">schedule</mat-icon>
+                </span>
+              }
               <div class="min-w-0 flex-1">
                 <p class="text-sm leading-snug">{{ d.text }}</p>
                 @if (d.detail) {
