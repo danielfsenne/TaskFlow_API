@@ -73,6 +73,23 @@ export interface BoardColumn {
   _count?: { tasks: number };
 }
 
+export type LabelColor =
+  | 'gray'
+  | 'red'
+  | 'orange'
+  | 'yellow'
+  | 'green'
+  | 'teal'
+  | 'blue'
+  | 'purple'
+  | 'pink';
+
+export interface Label {
+  id: string;
+  name: string;
+  color: LabelColor;
+}
+
 export interface Board {
   id: string;
   projectId: string;
@@ -80,6 +97,7 @@ export interface Board {
   createdAt: string;
   updatedAt: string;
   columns: BoardColumn[];
+  labels: Label[];
 }
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
@@ -103,6 +121,7 @@ export interface Task {
   updatedAt: string;
   createdBy: UserSummary;
   assignees: Assignee[];
+  labels: Label[];
   _count: { comments: number };
 }
 

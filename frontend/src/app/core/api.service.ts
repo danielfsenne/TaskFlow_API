@@ -11,6 +11,8 @@ import {
   DashboardStats,
   Invitation,
   InvitationPreview,
+  Label,
+  LabelColor,
   Member,
   MyDashboard,
   NotificationPage,
@@ -151,6 +153,15 @@ export class ApiService {
   markAllNotificationsRead = () =>
     this.patch<{ updated: number }>('/notifications/read-all');
   deleteNotification = (id: string) => this.delete(`/notifications/${id}`);
+
+  // Etiquetas
+  createLabel = (boardId: string, name: string, color: LabelColor) =>
+    this.post<Label>(`/boards/${boardId}/labels`, { name, color });
+  updateLabel = (id: string, data: { name?: string; color?: LabelColor }) =>
+    this.patch<Label>(`/labels/${id}`, data);
+  deleteLabel = (id: string) => this.delete(`/labels/${id}`);
+  setTaskLabels = (taskId: string, labelIds: string[]) =>
+    this.put<Task>(`/tasks/${taskId}/labels`, { labelIds });
 
   // Convites
   invitations = (orgId: string) =>

@@ -13,6 +13,8 @@ import {
   BoardColumn,
   Member,
   Organization,
+  Label,
+  LabelColor,
   Positioned,
   Project,
   Task,
@@ -25,6 +27,7 @@ export interface BoardFilters {
   search: string;
   assigneeId: string | null;
   priority: TaskPriority | null;
+  labelId: string | null;
 }
 
 interface BoardState {
@@ -34,6 +37,7 @@ interface BoardState {
   members: Member[];
   columns: BoardColumn[];
   tasks: Task[];
+  labels: Label[];
   loading: boolean;
   filters: BoardFilters;
 }
@@ -45,8 +49,9 @@ const initialState: BoardState = {
   members: [],
   columns: [],
   tasks: [],
+  labels: [],
   loading: true,
-  filters: { search: '', assigneeId: null, priority: null },
+  filters: { search: '', assigneeId: null, priority: null, labelId: null },
 };
 
 const byPosition = (a: { position: number }, b: { position: number }) =>
@@ -83,12 +88,13 @@ export const BoardStore = signalStore(
     const sortedColumns = computed(() => [...store.columns()].sort(byPosition));
 
     const matches = computed(() => {
-      const { search, assigneeId, priority } = store.filters();
+      const { search, assigneeId, priority, labelId } = store.filters();
       const term = search.trim().toLowerCase();
       return (t: Task) =>
         (!term || t.title.toLowerCase().includes(term)) &&
         (!priority || t.priority === priority) &&
-        (!assigneeId || t.assignees.some((a) => a.id === assigneeId));
+        (!assigneeId || t.assignees.some((a) => a.id === assigneeId)) &&
+        (!labelId || t.labels.some((l) => l.id === labelId));
     });
 
     return {
@@ -105,7 +111,9 @@ export const BoardStore = signalStore(
       }),
       hasFilters: computed(() => {
         const f = store.filters();
-        return !!f.search.trim() || !!f.assigneeId || !!f.priority;
+        return (
+          !!f.search.trim() || !!f.assigneeId || !!f.priority || !!f.labelId
+        );
       }),
       readOnly: computed(() => store.project()?.archived ?? true),
       me: computed(() => auth.user()?.id ?? null),
@@ -158,6 +166,7 @@ export const BoardStore = signalStore(
       patchState(store, {
         board,
         columns: board.columns,
+        labels: board.labels,
         tasks,
         project,
         organization,
@@ -165,6 +174,47 @@ export const BoardStore = signalStore(
         loading: false,
       });
     };
+
+    const sortLabels = (labels: Label[]) =>
+      [...labels].sort((a, b) => a.name.localeCompare(b.name));
+
+    // etiqueta nova ou alterada: atualiza a lista e os cards que a usam
+    const upsertLabel = (label: Label) => {
+      const exists = store.labels().some((l) => l.id === label.id);
+      patchState(store, {
+        labels: sortLabels(
+          exists
+            ? store.labels().map((l) => (l.id === label.id ? label : l))
+            : [...store.labels(), label],
+        ),
+        tasks: store.tasks().map((t) =>
+          t.labels.some((l) => l.id === label.id)
+            ? {
+                ...t,
+                labels: sortLabels(
+                  t.labels.map((l) => (l.id === label.id ? label : l)),
+                ),
+              }
+            : t,
+        ),
+      });
+    };
+
+    const removeLabel = (labelId: string) =>
+      patchState(store, {
+        labels: store.labels().filter((l) => l.id !== labelId),
+        tasks: store
+          .tasks()
+          .map((t) =>
+            t.labels.some((l) => l.id === labelId)
+              ? { ...t, labels: t.labels.filter((l) => l.id !== labelId) }
+              : t,
+          ),
+        filters:
+          store.filters().labelId === labelId
+            ? { ...store.filters(), labelId: null }
+            : store.filters(),
+      });
 
     const recover = async (error: unknown) => {
       ui.error(error);
@@ -180,7 +230,12 @@ export const BoardStore = signalStore(
           api.board(board.id),
           api.tasks(board.id),
         ]);
-        patchState(store, { board: fresh, columns: fresh.columns, tasks });
+        patchState(store, {
+          board: fresh,
+          columns: fresh.columns,
+          labels: fresh.labels,
+          tasks,
+        });
       } catch {
         // sem conexão; tenta de novo ao reconectar
       }
@@ -192,6 +247,50 @@ export const BoardStore = signalStore(
       upsertTask,
       removeTask,
       upsertColumn,
+      upsertLabel,
+      removeLabel,
+
+      async createLabel(name: string, color: LabelColor) {
+        try {
+          const label = await api.createLabel(store.board()!.id, name, color);
+          upsertLabel(label);
+          return label;
+        } catch (e) {
+          ui.error(e);
+          return null;
+        }
+      },
+
+      async updateLabel(
+        id: string,
+        data: { name?: string; color?: LabelColor },
+      ) {
+        try {
+          upsertLabel(await api.updateLabel(id, data));
+        } catch (e) {
+          ui.error(e);
+        }
+      },
+
+      async deleteLabel(id: string) {
+        try {
+          await api.deleteLabel(id);
+          removeLabel(id);
+        } catch (e) {
+          ui.error(e);
+        }
+      },
+
+      async setLabels(taskId: string, labelIds: string[]) {
+        try {
+          const task = await api.setTaskLabels(taskId, labelIds);
+          upsertTask(task);
+          return task;
+        } catch (e) {
+          ui.error(e);
+          return null;
+        }
+      },
 
       setFilters(filters: Partial<BoardFilters>) {
         patchState(store, { filters: { ...store.filters(), ...filters } });

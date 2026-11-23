@@ -30,6 +30,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   BoardColumn,
   Comment,
+  Label,
   Positioned,
   Task,
   TaskPriority,
@@ -41,6 +42,8 @@ import { PRIORITIES, PriorityLabelPipe } from '../../shared/labels';
 import { BoardStore } from './board.store';
 import { TaskCardComponent } from './task-card.component';
 import { FocusOnRenderDirective } from '../../shared/focus-on-render.directive';
+import { LabelChipComponent } from '../../shared/label-chip.component';
+import { LabelsDialogComponent } from './labels-dialog.component';
 import { TaskDialogComponent } from './task-dialog.component';
 
 @Component({
@@ -63,6 +66,7 @@ import { TaskDialogComponent } from './task-dialog.component';
     MatTooltipModule,
     PriorityLabelPipe,
     TaskCardComponent,
+    LabelChipComponent,
     FocusOnRenderDirective,
   ],
   styles: `
@@ -113,6 +117,9 @@ import { TaskDialogComponent } from './task-dialog.component';
               <mat-menu #boardMenu="matMenu">
                 <button mat-menu-item (click)="renameBoard()">
                   <mat-icon>edit</mat-icon>Renomear quadro
+                </button>
+                <button mat-menu-item (click)="openLabels()">
+                  <mat-icon>sell</mat-icon>Etiquetas
                 </button>
                 @if (store.canManageProject()) {
                   <button
@@ -177,6 +184,27 @@ import { TaskDialogComponent } from './task-dialog.component';
               }
             </mat-select>
           </mat-form-field>
+          @if (store.labels().length) {
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="compact w-36"
+            >
+              <mat-select
+                placeholder="Etiqueta"
+                [ngModel]="store.filters().labelId"
+                (ngModelChange)="store.setFilters({ labelId: $event })"
+                data-testid="label-filter"
+              >
+                <mat-option [value]="null">Todas</mat-option>
+                @for (l of store.labels(); track l.id) {
+                  <mat-option [value]="l.id">
+                    <app-label-chip [label]="l" />
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
           @if (store.hasFilters()) {
             <button mat-button (click)="store.clearFilters()">Limpar</button>
           }
@@ -397,6 +425,15 @@ export class BoardComponent {
     forThisBoard<BoardEvent & { taskId: string }>('task.deleted').subscribe(
       (e) => s.removeTask(e.taskId),
     );
+    forThisBoard<BoardEvent & { label: Label }>('label.created').subscribe(
+      (e) => s.upsertLabel(e.label),
+    );
+    forThisBoard<BoardEvent & { label: Label }>('label.updated').subscribe(
+      (e) => s.upsertLabel(e.label),
+    );
+    forThisBoard<BoardEvent & { labelId: string }>('label.deleted').subscribe(
+      (e) => s.removeLabel(e.labelId),
+    );
 
     forThisBoard<BoardEvent & { column: BoardColumn }>(
       'column.created',
@@ -475,6 +512,14 @@ export class BoardComponent {
     if (!title) return;
     this.newTitle = '';
     await this.store.createTask(columnId, title.slice(0, 200));
+  }
+
+  openLabels() {
+    this.dialog.open(LabelsDialogComponent, {
+      injector: this.injector,
+      autoFocus: false,
+      maxWidth: '96vw',
+    });
   }
 
   openTask(task: Pick<Task, 'id'>) {

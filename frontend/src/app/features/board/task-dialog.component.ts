@@ -5,6 +5,7 @@ import {
   computed,
   effect,
   inject,
+  Injector,
   OnInit,
   signal,
 } from '@angular/core';
@@ -14,6 +15,7 @@ import { provideNativeDateAdapter } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import {
   MAT_DIALOG_DATA,
+  MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
@@ -28,7 +30,9 @@ import { Comment, TaskPriority } from '../../core/models';
 import { UiService } from '../../shared/dialogs';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { PRIORITIES, PriorityLabelPipe } from '../../shared/labels';
+import { LabelChipComponent } from '../../shared/label-chip.component';
 import { BoardStore } from './board.store';
+import { LabelsDialogComponent } from './labels-dialog.component';
 
 export interface TaskDialogData {
   taskId: string;
@@ -52,6 +56,7 @@ export interface TaskDialogData {
     MatTooltipModule,
     PriorityLabelPipe,
     AvatarComponent,
+    LabelChipComponent,
   ],
   template: `
     @if (task(); as t) {
@@ -279,6 +284,47 @@ export interface TaskDialogData {
               </mat-select>
             </mat-form-field>
 
+            <div class="flex items-start gap-1">
+              <mat-form-field
+                appearance="outline"
+                subscriptSizing="dynamic"
+                class="flex-1"
+              >
+                <mat-label>Etiquetas</mat-label>
+                <mat-select
+                  multiple
+                  [value]="labelIds()"
+                  (selectionChange)="setLabels($event.value)"
+                  [disabled]="readOnly() || !store.labels().length"
+                  data-testid="task-labels"
+                >
+                  <mat-select-trigger>
+                    <span class="flex flex-wrap gap-1">
+                      @for (l of t.labels; track l.id) {
+                        <app-label-chip [label]="l" />
+                      }
+                    </span>
+                  </mat-select-trigger>
+                  @for (l of store.labels(); track l.id) {
+                    <mat-option [value]="l.id">
+                      <app-label-chip [label]="l" />
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (!readOnly()) {
+                <button
+                  mat-icon-button
+                  class="!mt-1"
+                  (click)="openLabels()"
+                  matTooltip="Gerenciar etiquetas"
+                  aria-label="Gerenciar etiquetas"
+                >
+                  <mat-icon>sell</mat-icon>
+                </button>
+              }
+            </div>
+
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Prazo</mat-label>
               <input
@@ -322,6 +368,8 @@ export class TaskDialogComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ui = inject(UiService);
   private readonly ref = inject(MatDialogRef<TaskDialogComponent>);
+  private readonly dialog = inject(MatDialog);
+  private readonly injector = inject(Injector);
   private readonly data = inject<TaskDialogData>(MAT_DIALOG_DATA);
   readonly taskId = this.data.taskId;
 
@@ -337,6 +385,9 @@ export class TaskDialogComponent implements OnInit {
     () =>
       this.store.columns().find((c) => c.id === this.task()?.columnId)?.name ??
       '',
+  );
+  readonly labelIds = computed(
+    () => this.task()?.labels.map((l) => l.id) ?? [],
   );
   readonly assigneeIds = computed(
     () => this.task()?.assignees.map((a) => a.id) ?? [],
@@ -430,6 +481,18 @@ export class TaskDialogComponent implements OnInit {
 
   async setPriority(priority: TaskPriority) {
     await this.store.updateTask(this.data.taskId, { priority });
+  }
+
+  async setLabels(labelIds: string[]) {
+    await this.store.setLabels(this.data.taskId, labelIds);
+  }
+
+  openLabels() {
+    this.dialog.open(LabelsDialogComponent, {
+      injector: this.injector,
+      autoFocus: false,
+      maxWidth: '96vw',
+    });
   }
 
   async setAssignees(userIds: string[]) {

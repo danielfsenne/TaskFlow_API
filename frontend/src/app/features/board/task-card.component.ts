@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Task } from '../../core/models';
 import { AvatarComponent } from '../../shared/avatar.component';
+import { LabelChipComponent } from '../../shared/label-chip.component';
 import { PRIORITY_CLASSES, PriorityLabelPipe } from '../../shared/labels';
 
 @Component({
@@ -14,12 +15,20 @@ import { PRIORITY_CLASSES, PriorityLabelPipe } from '../../shared/labels';
     MatTooltipModule,
     PriorityLabelPipe,
     AvatarComponent,
+    LabelChipComponent,
   ],
   template: `
     @let t = task();
     <article
       class="rounded border border-slate-200 bg-white p-2.5 hover:border-slate-400"
     >
+      @if (t.labels.length) {
+        <div class="mb-1.5 flex flex-wrap gap-1">
+          @for (l of t.labels; track l.id) {
+            <app-label-chip [label]="l" />
+          }
+        </div>
+      }
       <p class="mb-2 break-words text-[13px] leading-snug text-ink">
         {{ t.title }}
       </p>
