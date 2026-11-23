@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom, Observable } from 'rxjs';
 import {
   AppNotification,
+  Attachment,
   Board,
   BoardColumn,
   BoardSummary,
@@ -157,6 +158,21 @@ export class ApiService {
 
   taskActivity = (taskId: string) =>
     this.get<TaskActivity[]>(`/tasks/${taskId}/activity`);
+
+  // Anexos
+  attachments = (taskId: string) =>
+    this.get<Attachment[]>(`/tasks/${taskId}/attachments`);
+  uploadAttachment = (taskId: string, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return this.post<Attachment>(`/tasks/${taskId}/attachments`, form);
+  };
+  deleteAttachment = (id: string) => this.delete(`/attachments/${id}`);
+  // passa pelo interceptor (com token); <img>/<a> direto não levariam o login
+  attachmentBlob = (id: string) =>
+    this.run(
+      this.http.get(`${API}/attachments/${id}/file`, { responseType: 'blob' }),
+    );
 
   // Etiquetas
   createLabel = (boardId: string, name: string, color: LabelColor) =>

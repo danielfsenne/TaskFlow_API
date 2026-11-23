@@ -58,6 +58,15 @@ import { PRIORITY_CLASSES, PriorityLabelPipe } from '../../shared/labels';
             {{ t._count.comments }}
           </span>
         }
+        @if (t._count.attachments > 0) {
+          <span
+            class="flex items-center gap-0.5 text-slate-500"
+            [attr.aria-label]="t._count.attachments + ' anexos'"
+          >
+            <mat-icon class="!h-3.5 !w-3.5 !text-[14px]">attach_file</mat-icon>
+            {{ t._count.attachments }}
+          </span>
+        }
         <span class="flex-1"></span>
         <span class="flex -space-x-1">
           @for (a of t.assignees.slice(0, 3); track a.id) {

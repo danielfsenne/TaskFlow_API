@@ -59,6 +59,10 @@ export function describeActivity(a: TaskActivity): string {
       }
       return parts.join(' e ');
     }
+    case 'ATTACHMENT_ADDED':
+      return `anexou ${d.name}`;
+    case 'ATTACHMENT_REMOVED':
+      return `excluiu o anexo ${d.name}`;
     default:
       return 'alterou a tarefa';
   }

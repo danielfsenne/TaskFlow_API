@@ -35,6 +35,7 @@ import { LabelChipComponent } from '../../shared/label-chip.component';
 import { RelativeTimePipe } from '../../shared/relative-time.pipe';
 import { describeActivity } from './activity';
 import { BoardStore } from './board.store';
+import { TaskAttachmentsComponent } from './task-attachments.component';
 import { LabelsDialogComponent } from './labels-dialog.component';
 
 export interface TaskDialogData {
@@ -60,6 +61,7 @@ export interface TaskDialogData {
     PriorityLabelPipe,
     AvatarComponent,
     RelativeTimePipe,
+    TaskAttachmentsComponent,
     LabelChipComponent,
   ],
   template: `
@@ -139,6 +141,8 @@ export interface TaskDialogData {
                 }}
               </div>
             }
+
+            <app-task-attachments [taskId]="taskId" [readOnly]="readOnly()" />
 
             <div
               class="mb-3 mt-5 flex gap-4 border-b border-slate-200 text-sm"

@@ -94,7 +94,7 @@ API_URL=http://localhost:3100 npm start
 | `APP_URL` | `http://localhost:4200` | Endereço do frontend usado no link de redefinição de senha |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Mailpit (`localhost` / `1025`) | Envio de e-mails |
 | `MAIL_FROM` | `TaskFlow <nao-responda@taskflow.local>` | Remetente dos e-mails |
-| `UPLOAD_DIR` | `uploads` | Pasta das fotos de perfil |
+| `UPLOAD_DIR` | `uploads` | Pasta das fotos de perfil e dos anexos |
 | `REMINDERS_INTERVAL_MINUTES` | `15` | De quanto em quanto tempo a API procura tarefas que vencem nas próximas 24 h para avisar os responsáveis (`0` desliga) |
 
 ### Problemas comuns
@@ -112,7 +112,7 @@ API_URL=http://localhost:3100 npm start
 - Uma tarefa conta como **concluída** quando está na última coluna do quadro. É essa regra que alimenta os dashboards.
 - Projetos arquivados ficam somente leitura.
 - Login, cadastro e recuperação de senha têm limite de tentativas por IP. Redefinir ou trocar a senha encerra as sessões abertas em outros aparelhos.
-- As fotos de perfil ficam em `backend/uploads/` e são servidas pela própria API. Com mais de uma instância da API, essa pasta precisa ser compartilhada (ou trocada por um storage como o S3).
+- Fotos de perfil e anexos ficam em `backend/uploads/` e são servidos pela própria API. Anexos exigem login e, fora imagens comuns, sempre baixam (nunca abrem no navegador). Com mais de uma instância da API, essa pasta precisa ser compartilhada (ou trocada por um storage como o S3).
 - O quadro é sincronizado ao vivo via Socket.IO entre todos que estão com ele aberto; as notificações chegam pelo sino sem recarregar a página.
 
 ## Testes

@@ -216,6 +216,23 @@ export const BoardStore = signalStore(
             : store.filters(),
       });
 
+    const seenAttachments = new Set<string>();
+    const removedAttachments = new Set<string>();
+    const bumpAttachments = (taskId: string, delta: number) =>
+      patchState(store, {
+        tasks: store.tasks().map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                _count: {
+                  ...t._count,
+                  attachments: Math.max(0, t._count.attachments + delta),
+                },
+              }
+            : t,
+        ),
+      });
+
     const recover = async (error: unknown) => {
       ui.error(error);
       const board = store.board();
@@ -483,6 +500,18 @@ export const BoardStore = signalStore(
         if (board) patchState(store, { board: { ...board, name } });
       },
 
+      // idempotente: a resposta da API e o eco do tempo real chamam os dois
+      attachmentAdded(taskId: string, attachmentId: string) {
+        if (seenAttachments.has(attachmentId)) return;
+        seenAttachments.add(attachmentId);
+        bumpAttachments(taskId, 1);
+      },
+      attachmentRemoved(taskId: string, attachmentId: string) {
+        if (removedAttachments.has(attachmentId)) return;
+        removedAttachments.add(attachmentId);
+        bumpAttachments(taskId, -1);
+      },
+
       bumpComments(taskId: string, delta: number) {
         patchState(store, {
           tasks: store.tasks().map((t) =>
@@ -490,6 +519,7 @@ export const BoardStore = signalStore(
               ? {
                   ...t,
                   _count: {
+                    ...t._count,
                     comments: Math.max(0, t._count.comments + delta),
                   },
                 }

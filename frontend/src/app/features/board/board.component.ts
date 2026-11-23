@@ -425,6 +425,12 @@ export class BoardComponent {
     forThisBoard<BoardEvent & { taskId: string }>('task.deleted').subscribe(
       (e) => s.removeTask(e.taskId),
     );
+    forThisBoard<BoardEvent & { taskId: string; attachment: { id: string } }>(
+      'attachment.created',
+    ).subscribe((e) => s.attachmentAdded(e.taskId, e.attachment.id));
+    forThisBoard<BoardEvent & { taskId: string; attachmentId: string }>(
+      'attachment.deleted',
+    ).subscribe((e) => s.attachmentRemoved(e.taskId, e.attachmentId));
     forThisBoard<BoardEvent & { label: Label }>('label.created').subscribe(
       (e) => s.upsertLabel(e.label),
     );

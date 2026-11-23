@@ -122,7 +122,7 @@ export interface Task {
   createdBy: UserSummary;
   assignees: Assignee[];
   labels: Label[];
-  _count: { comments: number };
+  _count: { comments: number; attachments: number };
 }
 
 export interface Comment {
@@ -263,8 +263,11 @@ export interface TaskActivity {
     | 'PRIORITY'
     | 'DUE_DATE'
     | 'ASSIGNEES'
-    | 'LABELS';
+    | 'LABELS'
+    | 'ATTACHMENT_ADDED'
+    | 'ATTACHMENT_REMOVED';
   data: {
+    name?: string;
     column?: string;
     from?: string | null;
     to?: string | null;
@@ -273,4 +276,13 @@ export interface TaskActivity {
   };
   createdAt: string;
   actor: UserSummary;
+}
+
+export interface Attachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+  uploadedBy: UserSummary;
 }
