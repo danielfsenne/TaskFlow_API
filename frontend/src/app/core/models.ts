@@ -252,3 +252,25 @@ export interface InvitationPreview {
   invitedBy: { id: string; name: string };
   expired: boolean;
 }
+
+export interface TaskActivity {
+  id: string;
+  type:
+    | 'CREATED'
+    | 'MOVED'
+    | 'TITLE'
+    | 'DESCRIPTION'
+    | 'PRIORITY'
+    | 'DUE_DATE'
+    | 'ASSIGNEES'
+    | 'LABELS';
+  data: {
+    column?: string;
+    from?: string | null;
+    to?: string | null;
+    added?: (string | { name: string; color: LabelColor })[];
+    removed?: (string | { name: string; color: LabelColor })[];
+  };
+  createdAt: string;
+  actor: UserSummary;
+}

@@ -7,6 +7,7 @@ import {
   register,
   sleep,
   suite,
+  waitFor,
   watchErrors,
 } from './support.mjs';
 
@@ -189,6 +190,38 @@ try {
   await selectOption('Coluna', 'Concluído');
   await sleep(700);
   t.ok('movida pelo painel', (await fetchTask()).columnId === done.id);
+
+  await page.click('[data-testid=history-tab]');
+  await page.waitForSelector('[data-activity="MOVED"]');
+  const history = await page.$$eval('[data-activity]', (els) =>
+    els.map((e) => e.querySelector('p').innerText.split('\n')[0]),
+  );
+  t.ok(
+    'histórico mostra o que aconteceu, mais recente primeiro',
+    history[0]?.includes('Carla Painel moveu de A fazer para Concluído') &&
+      history.some((h) =>
+        h.includes('renomeou para "Tela de login com Google"'),
+      ) &&
+      history.some((h) =>
+        h.includes('mudou a prioridade de média para urgente'),
+      ) &&
+      history.some((h) => h.includes('atribuiu a Diego Souza')) &&
+      history.some((h) => h.includes('removeu o prazo')) &&
+      history.at(-1)?.includes('criou a tarefa em A fazer'),
+    history,
+  );
+  // mudança feita por outra pessoa aparece com a aba aberta
+  await api('PATCH', `/tasks/${task.id}`, colleague.token, { priority: 'LOW' });
+  t.ok(
+    'histórico atualiza ao vivo',
+    await waitFor(page, () =>
+      document
+        .querySelector('[data-activity] p')
+        ?.innerText.includes(
+          'Diego Souza mudou a prioridade de urgente para baixa',
+        ),
+    ),
+  );
   await page.keyboard.press('Escape');
   await sleep(500);
   t.ok('fechar limpa ?task=', !page.url().includes('task='), page.url());

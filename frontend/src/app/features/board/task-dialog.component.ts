@@ -8,6 +8,7 @@ import {
   Injector,
   OnInit,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,11 +27,13 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiService } from '../../core/api.service';
-import { Comment, TaskPriority } from '../../core/models';
+import { Comment, TaskActivity, TaskPriority } from '../../core/models';
 import { UiService } from '../../shared/dialogs';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { PRIORITIES, PriorityLabelPipe } from '../../shared/labels';
 import { LabelChipComponent } from '../../shared/label-chip.component';
+import { RelativeTimePipe } from '../../shared/relative-time.pipe';
+import { describeActivity } from './activity';
 import { BoardStore } from './board.store';
 import { LabelsDialogComponent } from './labels-dialog.component';
 
@@ -56,6 +59,7 @@ export interface TaskDialogData {
     MatTooltipModule,
     PriorityLabelPipe,
     AvatarComponent,
+    RelativeTimePipe,
     LabelChipComponent,
   ],
   template: `
@@ -136,110 +140,172 @@ export interface TaskDialogData {
               </div>
             }
 
-            <h3 class="mb-2 mt-5 text-sm font-semibold text-slate-700">
-              Comentários ({{ t._count.comments }})
-            </h3>
-            @if (!readOnly()) {
-              <div class="mb-3 flex gap-2">
-                <textarea
-                  class="flex-1 rounded-md border-0 p-2 text-sm ring-1 ring-slate-300 focus:outline-none focus:ring-slate-400"
-                  rows="2"
-                  placeholder="Escreva um comentário…"
-                  [(ngModel)]="newComment"
-                  (keydown.control.enter)="addComment()"
-                  maxlength="5000"
-                  aria-label="Novo comentário"
-                ></textarea>
-                <button
-                  mat-flat-button
-                  class="self-end"
-                  (click)="addComment()"
-                  [disabled]="!newComment.trim() || sending()"
-                >
-                  Enviar
-                </button>
-              </div>
-            }
-            <ul class="flex flex-col gap-3">
-              @for (c of comments(); track c.id) {
-                <li class="flex gap-2" [attr.data-comment]="c.id">
-                  <app-avatar
-                    [name]="c.author.name"
-                    [url]="c.author.avatarUrl"
-                    [seed]="c.author.id"
-                    [size]="28"
-                  />
-                  <div class="min-w-0 flex-1">
-                    <p class="text-xs text-slate-500">
-                      <strong class="text-slate-700">{{
-                        c.author.name
-                      }}</strong>
-                      · {{ c.createdAt | date: 'short' }}
-                      @if (c.updatedAt !== c.createdAt) {
-                        <span>(editado)</span>
-                      }
-                    </p>
-                    @if (editingComment() === c.id) {
-                      <textarea
-                        class="mt-1 w-full rounded-md border-0 p-2 text-sm ring-1 ring-slate-400 focus:outline-none"
-                        rows="2"
-                        [(ngModel)]="commentDraft"
-                        aria-label="Editar comentário"
-                      ></textarea>
-                      <div class="flex gap-1">
-                        <button
-                          mat-button
-                          class="!h-7"
-                          (click)="saveComment(c)"
-                        >
-                          Salvar
-                        </button>
-                        <button
-                          mat-button
-                          class="!h-7"
-                          (click)="editingComment.set(null)"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    } @else {
-                      <p class="whitespace-pre-line break-words text-sm">
-                        {{ c.content }}
-                      </p>
-                      @if (!readOnly()) {
-                        <div class="flex gap-2 text-xs text-slate-500">
-                          @if (c.authorId === store.me()) {
-                            <button
-                              class="hover:underline"
-                              (click)="startEditComment(c)"
-                            >
-                              Editar
-                            </button>
-                          }
-                          @if (
-                            c.authorId === store.me() ||
-                            store.canManageProject()
-                          ) {
-                            <button
-                              class="hover:underline"
-                              (click)="deleteComment(c)"
-                            >
-                              Excluir
-                            </button>
-                          }
-                        </div>
-                      }
-                    }
-                  </div>
-                </li>
-              } @empty {
-                <li class="text-sm text-slate-400">Nenhum comentário ainda.</li>
-              }
-            </ul>
-            @if (nextCursor()) {
-              <button mat-button class="mt-2" (click)="loadMore()">
-                Carregar mais
+            <div
+              class="mb-3 mt-5 flex gap-4 border-b border-slate-200 text-sm"
+              role="tablist"
+            >
+              <button
+                role="tab"
+                class="-mb-px border-b-2 pb-1.5"
+                [class]="
+                  tab() === 'comments'
+                    ? 'border-ink font-semibold text-ink'
+                    : 'border-transparent text-slate-500 hover:text-ink'
+                "
+                [attr.aria-selected]="tab() === 'comments'"
+                (click)="tab.set('comments')"
+              >
+                Comentários ({{ t._count.comments }})
               </button>
+              <button
+                role="tab"
+                class="-mb-px border-b-2 pb-1.5"
+                [class]="
+                  tab() === 'history'
+                    ? 'border-ink font-semibold text-ink'
+                    : 'border-transparent text-slate-500 hover:text-ink'
+                "
+                [attr.aria-selected]="tab() === 'history'"
+                (click)="showHistory()"
+                data-testid="history-tab"
+              >
+                Histórico
+              </button>
+            </div>
+            @if (tab() === 'comments') {
+              @if (!readOnly()) {
+                <div class="mb-3 flex gap-2">
+                  <textarea
+                    class="flex-1 rounded-md border-0 p-2 text-sm ring-1 ring-slate-300 focus:outline-none focus:ring-slate-400"
+                    rows="2"
+                    placeholder="Escreva um comentário…"
+                    [(ngModel)]="newComment"
+                    (keydown.control.enter)="addComment()"
+                    maxlength="5000"
+                    aria-label="Novo comentário"
+                  ></textarea>
+                  <button
+                    mat-flat-button
+                    class="self-end"
+                    (click)="addComment()"
+                    [disabled]="!newComment.trim() || sending()"
+                  >
+                    Enviar
+                  </button>
+                </div>
+              }
+              <ul class="flex flex-col gap-3">
+                @for (c of comments(); track c.id) {
+                  <li class="flex gap-2" [attr.data-comment]="c.id">
+                    <app-avatar
+                      [name]="c.author.name"
+                      [url]="c.author.avatarUrl"
+                      [seed]="c.author.id"
+                      [size]="28"
+                    />
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs text-slate-500">
+                        <strong class="text-slate-700">{{
+                          c.author.name
+                        }}</strong>
+                        · {{ c.createdAt | date: 'short' }}
+                        @if (c.updatedAt !== c.createdAt) {
+                          <span>(editado)</span>
+                        }
+                      </p>
+                      @if (editingComment() === c.id) {
+                        <textarea
+                          class="mt-1 w-full rounded-md border-0 p-2 text-sm ring-1 ring-slate-400 focus:outline-none"
+                          rows="2"
+                          [(ngModel)]="commentDraft"
+                          aria-label="Editar comentário"
+                        ></textarea>
+                        <div class="flex gap-1">
+                          <button
+                            mat-button
+                            class="!h-7"
+                            (click)="saveComment(c)"
+                          >
+                            Salvar
+                          </button>
+                          <button
+                            mat-button
+                            class="!h-7"
+                            (click)="editingComment.set(null)"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      } @else {
+                        <p class="whitespace-pre-line break-words text-sm">
+                          {{ c.content }}
+                        </p>
+                        @if (!readOnly()) {
+                          <div class="flex gap-2 text-xs text-slate-500">
+                            @if (c.authorId === store.me()) {
+                              <button
+                                class="hover:underline"
+                                (click)="startEditComment(c)"
+                              >
+                                Editar
+                              </button>
+                            }
+                            @if (
+                              c.authorId === store.me() ||
+                              store.canManageProject()
+                            ) {
+                              <button
+                                class="hover:underline"
+                                (click)="deleteComment(c)"
+                              >
+                                Excluir
+                              </button>
+                            }
+                          </div>
+                        }
+                      }
+                    </div>
+                  </li>
+                } @empty {
+                  <li class="text-sm text-slate-400">
+                    Nenhum comentário ainda.
+                  </li>
+                }
+              </ul>
+              @if (nextCursor()) {
+                <button mat-button class="mt-2" (click)="loadMore()">
+                  Carregar mais
+                </button>
+              }
+            } @else {
+              <ul class="flex flex-col gap-2.5" data-testid="history">
+                @for (a of activity(); track a.id) {
+                  <li
+                    class="flex gap-2 text-[13px]"
+                    [attr.data-activity]="a.type"
+                  >
+                    <app-avatar
+                      [name]="a.actor.name"
+                      [url]="a.actor.avatarUrl"
+                      [seed]="a.actor.id"
+                      [size]="22"
+                    />
+                    <p class="min-w-0 flex-1 leading-snug text-slate-600">
+                      <strong class="font-medium text-ink">{{
+                        a.actor.name
+                      }}</strong>
+                      {{ describeActivity(a) }}
+                      <span class="block text-xs text-slate-400">{{
+                        a.createdAt | relativeTime
+                      }}</span>
+                    </p>
+                  </li>
+                } @empty {
+                  <li class="text-sm text-slate-400">
+                    {{ loadingHistory() ? 'Carregando…' : 'Sem registros.' }}
+                  </li>
+                }
+              </ul>
             }
           </section>
 
@@ -377,6 +443,10 @@ export class TaskDialogComponent implements OnInit {
   private readonly countedDeleted = new Set<string>();
 
   readonly priorities = PRIORITIES;
+  readonly describeActivity = describeActivity;
+  readonly tab = signal<'comments' | 'history'>('comments');
+  readonly activity = signal<TaskActivity[]>([]);
+  readonly loadingHistory = signal(false);
   readonly task = computed(() =>
     this.store.tasks().find((t) => t.id === this.data.taskId),
   );
@@ -418,6 +488,27 @@ export class TaskDialogComponent implements OnInit {
     effect(() => {
       if (!this.store.loading() && !this.task()) this.ref.close();
     });
+    // a tarefa mudou (aqui ou por outra pessoa): atualiza o histórico aberto
+    effect(() => {
+      this.task()?.updatedAt;
+      if (untracked(this.tab) === 'history') void this.loadHistory();
+    });
+  }
+
+  async showHistory() {
+    this.tab.set('history');
+    await this.loadHistory();
+  }
+
+  private async loadHistory() {
+    this.loadingHistory.set(true);
+    try {
+      this.activity.set(await this.api.taskActivity(this.data.taskId));
+    } catch (e) {
+      this.ui.error(e);
+    } finally {
+      this.loadingHistory.set(false);
+    }
   }
 
   async ngOnInit() {

@@ -20,6 +20,7 @@ import {
   OrganizationRole,
   Project,
   Task,
+  TaskActivity,
   TaskPriority,
   TokenPair,
   User,
@@ -153,6 +154,9 @@ export class ApiService {
   markAllNotificationsRead = () =>
     this.patch<{ updated: number }>('/notifications/read-all');
   deleteNotification = (id: string) => this.delete(`/notifications/${id}`);
+
+  taskActivity = (taskId: string) =>
+    this.get<TaskActivity[]>(`/tasks/${taskId}/activity`);
 
   // Etiquetas
   createLabel = (boardId: string, name: string, color: LabelColor) =>
