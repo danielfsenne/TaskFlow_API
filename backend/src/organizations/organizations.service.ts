@@ -114,7 +114,11 @@ export class OrganizationsService {
       where: { email: dto.email },
       select: publicUserSelect,
     });
-    if (!user) throw new NotFoundException('Usuário não encontrado');
+    if (!user) {
+      throw new NotFoundException(
+        'Ninguém com esse e-mail tem conta no TaskFlow',
+      );
+    }
 
     try {
       const member = await this.prisma.organizationMember.create({

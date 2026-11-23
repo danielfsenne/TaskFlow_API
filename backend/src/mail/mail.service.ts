@@ -52,6 +52,32 @@ export class MailService {
     );
   }
 
+  async sendInvitation(
+    to: string,
+    inviterName: string,
+    organizationName: string,
+    link: string,
+  ) {
+    await this.send(
+      to,
+      `${inviterName} convidou você para ${organizationName} no TaskFlow`,
+      [
+        'Olá.',
+        '',
+        `${inviterName} convidou você para participar da organização ${organizationName} no TaskFlow.`,
+        'Para aceitar, abra o link abaixo (vale por 7 dias):',
+        '',
+        link,
+        '',
+        'Se não esperava este convite, é só ignorar este e-mail.',
+      ].join('\n'),
+      `<p>Olá.</p>
+<p><strong>${escape(inviterName)}</strong> convidou você para participar da organização <strong>${escape(organizationName)}</strong> no TaskFlow.</p>
+<p><a href="${escape(link)}">Aceitar o convite</a> (o link vale por 7 dias).</p>
+<p style="color:#666">Se não esperava este convite, é só ignorar este e-mail.</p>`,
+    );
+  }
+
   private async send(to: string, subject: string, text: string, html: string) {
     try {
       await this.transport.sendMail({

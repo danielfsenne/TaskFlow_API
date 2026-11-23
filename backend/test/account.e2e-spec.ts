@@ -4,22 +4,10 @@ import {
   cleanup,
   createTestApp,
   eventually,
+  lastMailTo,
   registerUser,
   TestUser,
 } from './utils';
-
-// precisa do Mailpit do docker compose (SMTP 1025, API 8025)
-const MAILPIT = process.env.MAILPIT_URL ?? 'http://localhost:8025';
-
-async function lastMailTo(email: string) {
-  const res = await fetch(
-    `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`,
-  );
-  const { messages } = (await res.json()) as { messages: { ID: string }[] };
-  if (!messages?.length) return null;
-  const msg = await fetch(`${MAILPIT}/api/v1/message/${messages[0].ID}`);
-  return (await msg.json()) as { Subject: string; Text: string };
-}
 
 describe('Conta: senha e segurança (e2e)', () => {
   let app: INestApplication;

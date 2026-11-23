@@ -10,6 +10,7 @@ import { CommentsModule } from './comments/comments.module';
 import { validateEnv } from './config/env.validation';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
+import { InvitationsModule } from './invitations/invitations.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -57,6 +58,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     NotificationsModule,
     OrganizationsModule,
+    InvitationsModule,
     ProjectsModule,
     BoardsModule,
     TasksModule,
