@@ -13,6 +13,8 @@ export const ActivityType = {
   DueDate: 'DUE_DATE', // { from, to } (ISO ou null)
   Assignees: 'ASSIGNEES', // { added: string[], removed: string[] } (nomes)
   Labels: 'LABELS', // { added: Label[], removed: Label[] }
+  AttachmentAdded: 'ATTACHMENT_ADDED', // { name }
+  AttachmentRemoved: 'ATTACHMENT_REMOVED', // { name }
 } as const;
 
 type Entry = { type: string; data?: Prisma.InputJsonValue };

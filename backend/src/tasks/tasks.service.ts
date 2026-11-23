@@ -39,7 +39,7 @@ const taskInclude = {
     select: { label: { select: labelSelect } },
     orderBy: { label: { name: 'asc' } },
   },
-  _count: { select: { comments: true } },
+  _count: { select: { comments: true, attachments: true } },
 } satisfies Prisma.TaskInclude;
 
 type TaskWithRelations = Prisma.TaskGetPayload<{ include: typeof taskInclude }>;

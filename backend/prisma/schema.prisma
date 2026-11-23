@@ -38,6 +38,7 @@ model User {
   assignedTasks   TaskAssignee[]
   comments        Comment[]
   activities      TaskActivity[]
+  attachments     Attachment[]
   notifications   Notification[]
 
   @@map("users")
@@ -182,13 +183,14 @@ model Task {
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
 
-  board     Board          @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  column    BoardColumn    @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  createdBy User           @relation("TaskCreator", fields: [createdById], references: [id])
-  assignees TaskAssignee[]
-  comments  Comment[]
-  labels    TaskLabel[]
-  activity  TaskActivity[]
+  board       Board          @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  column      BoardColumn    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  createdBy   User           @relation("TaskCreator", fields: [createdById], references: [id])
+  assignees   TaskAssignee[]
+  comments    Comment[]
+  labels      TaskLabel[]
+  activity    TaskActivity[]
+  attachments Attachment[]
 
   @@index([boardId])
   @@index([columnId, position])
@@ -248,6 +250,23 @@ model TaskActivity {
 
   @@index([taskId, createdAt])
   @@map("task_activities")
+}
+
+model Attachment {
+  id           String   @id @default(uuid())
+  taskId       String   @map("task_id")
+  uploadedById String   @map("uploaded_by_id")
+  fileName     String   @map("file_name")
+  storedName   String   @unique @map("stored_name")
+  mimeType     String   @map("mime_type")
+  size         Int
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("attachments")
 }
 
 model Comment {

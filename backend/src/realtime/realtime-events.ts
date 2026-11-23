@@ -16,6 +16,9 @@ export const RealtimeEvent = {
   LabelUpdated: 'label.updated', // { label }
   LabelDeleted: 'label.deleted', // { labelId }
 
+  AttachmentCreated: 'attachment.created', // { taskId, attachment }
+  AttachmentDeleted: 'attachment.deleted', // { taskId, attachmentId }
+
   CommentCreated: 'comment.created', // { taskId, comment }
   CommentUpdated: 'comment.updated', // { taskId, comment }
   CommentDeleted: 'comment.deleted', // { taskId, commentId }

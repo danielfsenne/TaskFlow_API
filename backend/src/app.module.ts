@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { isAuthLimited } from './auth/auth-throttle';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { BoardsModule } from './boards/boards.module';
 import { CommentsModule } from './comments/comments.module';
@@ -64,6 +65,7 @@ import { UsersModule } from './users/users.module';
     BoardsModule,
     TasksModule,
     CommentsModule,
+    AttachmentsModule,
     DashboardModule,
     RemindersModule,
     RealtimeModule,
