@@ -23,13 +23,17 @@ import {
   SetLabelsDto,
   UpdateTaskDto,
 } from './dto/task.dto';
+import { TaskActivityService } from './task-activity.service';
 import { TasksService } from './tasks.service';
 
 @ApiTags('tasks')
 @ApiBearerAuth()
 @Controller()
 export class TasksController {
-  constructor(private readonly tasks: TasksService) {}
+  constructor(
+    private readonly tasks: TasksService,
+    private readonly activityService: TaskActivityService,
+  ) {}
 
   @Post('boards/:boardId/tasks')
   @ApiOperation({ summary: 'Cria uma tarefa no fim da coluna' })
@@ -98,6 +102,15 @@ export class TasksController {
     @Body() dto: SetLabelsDto,
   ) {
     return this.tasks.setLabels(id, user.id, dto.labelIds);
+  }
+
+  @Get('tasks/:id/activity')
+  @ApiOperation({ summary: 'Histórico de alterações (mais recentes primeiro)' })
+  activity(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.activityService.list(id, user.id);
   }
 
   @Delete('tasks/:id')

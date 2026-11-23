@@ -12,6 +12,7 @@ import { ProjectAccessService } from '../projects/project-access.service';
 import { NotificationType } from '../notifications/notification-types';
 import { NotificationsProducer } from '../notifications/notifications.producer';
 import { TaskAccessService } from './task-access.service';
+import { TaskActivityService } from './task-activity.service';
 import { TasksService } from './tasks.service';
 
 describe('TasksService', () => {
@@ -32,8 +33,13 @@ describe('TasksService', () => {
       create: jest.fn(),
       delete: jest.fn(),
     },
-    boardColumn: { findFirst: jest.fn(), findMany: columnsDesc },
+    boardColumn: {
+      findFirst: jest.fn(),
+      findMany: columnsDesc,
+      findUnique: jest.fn(),
+    },
     organizationMember: { findUnique: jest.fn(), count: jest.fn() },
+    user: { findMany: jest.fn().mockResolvedValue([]) },
     taskAssignee: {
       findMany: jest.fn(),
       deleteMany: jest.fn(),
@@ -45,6 +51,7 @@ describe('TasksService', () => {
     getBoardAccess: jest.fn(),
   };
   const notifications = { notify: jest.fn() };
+  const activity = { record: jest.fn(), changes: jest.fn(() => []) };
   let service: TasksService;
 
   const project = {
@@ -77,6 +84,7 @@ describe('TasksService', () => {
       ),
       notifications as unknown as NotificationsProducer,
       { toBoard: jest.fn() } as unknown as RealtimeEmitter,
+      activity as unknown as TaskActivityService,
     );
     prisma.task.findUniqueOrThrow.mockResolvedValue(fullTask);
   });

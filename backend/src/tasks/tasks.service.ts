@@ -24,6 +24,7 @@ import {
   MoveTaskDto,
   UpdateTaskDto,
 } from './dto/task.dto';
+import { ActivityType, TaskActivityService } from './task-activity.service';
 import { TaskAccessService } from './task-access.service';
 
 const userSummary = { select: { id: true, name: true, avatarUrl: true } };
@@ -76,6 +77,7 @@ export class TasksService {
     private readonly taskAccess: TaskAccessService,
     private readonly notifications: NotificationsProducer,
     private readonly realtime: RealtimeEmitter,
+    private readonly activity: TaskActivityService,
   ) {}
 
   async create(boardId: string, userId: string, dto: CreateTaskDto) {
@@ -130,6 +132,9 @@ export class TasksService {
       assigneeIds,
       taskEventData(task, project),
     );
+    await this.activity.record(task.id, userId, [
+      { type: ActivityType.Created, data: { column: column.name } },
+    ]);
     const created = present(task);
     this.realtime.toBoard(boardId, RealtimeEvent.TaskCreated, userId, {
       task: created,
@@ -170,7 +175,8 @@ export class TasksService {
   }
 
   async update(id: string, userId: string, dto: UpdateTaskDto) {
-    await this.taskAccess.getWritable(id, userId);
+    const { task: before } = await this.taskAccess.getWritable(id, userId);
+    const changes = this.activity.changes(before, dto);
     const task = present(
       await this.prisma.task.update({
         where: { id },
@@ -180,6 +186,7 @@ export class TasksService {
         include: taskInclude,
       }),
     );
+    await this.activity.record(id, userId, changes);
     this.realtime.toBoard(task.boardId, RealtimeEvent.TaskUpdated, userId, {
       task,
     });
@@ -234,6 +241,19 @@ export class TasksService {
       return positions;
     });
 
+    if (column.id !== task.columnId) {
+      const from = await this.prisma.boardColumn.findUnique({
+        where: { id: task.columnId },
+        select: { name: true },
+      });
+      await this.activity.record(id, userId, [
+        {
+          type: ActivityType.Moved,
+          data: { from: from?.name ?? null, to: column.name },
+        },
+      ]);
+    }
+
     const moved = await this.findOne(id, userId);
     this.realtime.toBoard(task.boardId, RealtimeEvent.TaskMoved, userId, {
       task: moved,
@@ -253,6 +273,7 @@ export class TasksService {
     });
     const before = new Set(current.map((a) => a.userId));
     const added = userIds.filter((u) => !before.has(u));
+    const removed = [...before].filter((u) => !userIds.includes(u));
 
     await this.prisma.$transaction([
       this.prisma.taskAssignee.deleteMany({
@@ -270,6 +291,25 @@ export class TasksService {
       added,
       taskEventData(task, project),
     );
+    if (added.length || removed.length) {
+      const names = new Map(
+        (
+          await this.prisma.user.findMany({
+            where: { id: { in: [...added, ...removed] } },
+            select: { id: true, name: true },
+          })
+        ).map((u) => [u.id, u.name]),
+      );
+      await this.activity.record(id, userId, [
+        {
+          type: ActivityType.Assignees,
+          data: {
+            added: added.map((u) => names.get(u) ?? '?'),
+            removed: removed.map((u) => names.get(u) ?? '?'),
+          },
+        },
+      ]);
+    }
     const updated = await this.findOne(id, userId);
     this.realtime.toBoard(task.boardId, RealtimeEvent.TaskUpdated, userId, {
       task: updated,
@@ -286,6 +326,13 @@ export class TasksService {
     if (count !== labelIds.length) {
       throw new BadRequestException('Etiqueta não pertence a este quadro');
     }
+    const current = await this.prisma.taskLabel.findMany({
+      where: { taskId: id },
+      select: { labelId: true },
+    });
+    const had = new Set(current.map((l) => l.labelId));
+    const addedIds = labelIds.filter((l) => !had.has(l));
+    const removedIds = [...had].filter((l) => !labelIds.includes(l));
     await this.prisma.$transaction([
       this.prisma.taskLabel.deleteMany({
         where: { taskId: id, labelId: { notIn: labelIds } },
@@ -295,6 +342,22 @@ export class TasksService {
         skipDuplicates: true,
       }),
     ]);
+    if (addedIds.length || removedIds.length) {
+      const labels = await this.prisma.label.findMany({
+        where: { id: { in: [...addedIds, ...removedIds] } },
+        select: labelSelect,
+      });
+      const pick = (ids: string[]) =>
+        labels
+          .filter((l) => ids.includes(l.id))
+          .map(({ name, color }) => ({ name, color }));
+      await this.activity.record(id, userId, [
+        {
+          type: ActivityType.Labels,
+          data: { added: pick(addedIds), removed: pick(removedIds) },
+        },
+      ]);
+    }
     const updated = await this.findOne(id, userId);
     this.realtime.toBoard(task.boardId, RealtimeEvent.TaskUpdated, userId, {
       task: updated,

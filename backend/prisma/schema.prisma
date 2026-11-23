@@ -37,6 +37,7 @@ model User {
   createdTasks    Task[]               @relation("TaskCreator")
   assignedTasks   TaskAssignee[]
   comments        Comment[]
+  activities      TaskActivity[]
   notifications   Notification[]
 
   @@map("users")
@@ -187,6 +188,7 @@ model Task {
   assignees TaskAssignee[]
   comments  Comment[]
   labels    TaskLabel[]
+  activity  TaskActivity[]
 
   @@index([boardId])
   @@index([columnId, position])
@@ -231,6 +233,21 @@ model TaskLabel {
   @@id([taskId, labelId])
   @@index([labelId])
   @@map("task_labels")
+}
+
+model TaskActivity {
+  id        String   @id @default(uuid())
+  taskId    String   @map("task_id")
+  actorId   String   @map("actor_id")
+  type      String
+  data      Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task  Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  @@map("task_activities")
 }
 
 model Comment {
