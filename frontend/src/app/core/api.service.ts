@@ -20,6 +20,7 @@ import {
   Organization,
   OrganizationRole,
   Project,
+  SearchResults,
   Task,
   TaskActivity,
   TaskPriority,
@@ -158,6 +159,8 @@ export class ApiService {
 
   taskActivity = (taskId: string) =>
     this.get<TaskActivity[]>(`/tasks/${taskId}/activity`);
+
+  search = (q: string) => this.get<SearchResults>('/search', { q });
 
   // Anexos
   attachments = (taskId: string) =>

@@ -19,6 +19,7 @@ import { AvatarComponent } from '../shared/avatar.component';
 import { UiService } from '../shared/dialogs';
 import { LogoComponent } from '../shared/logo.component';
 import { NotificationsMenuComponent } from './notifications-menu.component';
+import { SearchBoxComponent } from './search-box.component';
 
 @Component({
   selector: 'app-shell',
@@ -31,6 +32,7 @@ import { NotificationsMenuComponent } from './notifications-menu.component';
     MatMenuModule,
     MatTooltipModule,
     NotificationsMenuComponent,
+    SearchBoxComponent,
     AvatarComponent,
     LogoComponent,
   ],
@@ -119,7 +121,9 @@ import { NotificationsMenuComponent } from './notifications-menu.component';
             <mat-icon>menu</mat-icon>
           </button>
           <app-logo class="lg:!hidden" [withName]="false" />
-          <span class="flex-1"></span>
+          <div class="mx-2 flex min-w-0 flex-1 justify-center">
+            <app-search-box />
+          </div>
           <app-notifications-menu />
           <button
             class="ml-1 flex items-center gap-2 rounded px-1.5 py-1 hover:bg-slate-100"

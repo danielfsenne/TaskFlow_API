@@ -286,3 +286,26 @@ export interface Attachment {
   createdAt: string;
   uploadedBy: UserSummary;
 }
+
+export interface SearchResults {
+  tasks: {
+    id: string;
+    title: string;
+    priority: TaskPriority;
+    completedAt: string | null;
+    boardId: string;
+    boardName: string;
+    project: { id: string; name: string; archived: boolean };
+  }[];
+  projects: {
+    id: string;
+    name: string;
+    archived: boolean;
+    organization: { id: string; name: string };
+  }[];
+  boards: {
+    id: string;
+    name: string;
+    project: { id: string; name: string; archived: boolean };
+  }[];
+}
