@@ -94,6 +94,11 @@ class EnvironmentVariables {
 
   @IsString()
   QUEUE_PREFIX: string = 'bull';
+
+  // de quanto em quanto tempo procurar prazos próximos; 0 desliga
+  @IsInt()
+  @Min(0)
+  REMINDERS_INTERVAL_MINUTES: number = 15;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

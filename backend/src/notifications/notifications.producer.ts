@@ -17,7 +17,7 @@ export class NotificationsProducer {
 
   notify(
     type: NotificationType,
-    actorId: string,
+    actorId: string | null,
     recipientIds: Iterable<string>,
     data: Record<string, unknown>,
   ): void {

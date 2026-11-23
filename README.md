@@ -95,6 +95,7 @@ API_URL=http://localhost:3100 npm start
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Mailpit (`localhost` / `1025`) | Envio de e-mails |
 | `MAIL_FROM` | `TaskFlow <nao-responda@taskflow.local>` | Remetente dos e-mails |
 | `UPLOAD_DIR` | `uploads` | Pasta das fotos de perfil |
+| `REMINDERS_INTERVAL_MINUTES` | `15` | De quanto em quanto tempo a API procura tarefas que vencem nas próximas 24 h para avisar os responsáveis (`0` desliga) |
 
 ### Problemas comuns
 

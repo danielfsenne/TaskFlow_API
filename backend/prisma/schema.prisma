@@ -167,18 +167,19 @@ model BoardColumn {
 }
 
 model Task {
-  id          String       @id @default(uuid())
-  boardId     String       @map("board_id")
-  columnId    String       @map("column_id")
-  title       String
-  description String?
-  priority    TaskPriority @default(MEDIUM)
-  position    Float
-  dueDate     DateTime?    @map("due_date")
-  completedAt DateTime?    @map("completed_at")
-  createdById String       @map("created_by_id")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  id                String       @id @default(uuid())
+  boardId           String       @map("board_id")
+  columnId          String       @map("column_id")
+  title             String
+  description       String?
+  priority          TaskPriority @default(MEDIUM)
+  position          Float
+  dueDate           DateTime?    @map("due_date")
+  completedAt       DateTime?    @map("completed_at")
+  dueReminderSentAt DateTime?    @map("due_reminder_sent_at")
+  createdById       String       @map("created_by_id")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
 
   board     Board          @relation(fields: [boardId], references: [id], onDelete: Cascade)
   column    BoardColumn    @relation(fields: [columnId], references: [id], onDelete: Cascade)
@@ -189,6 +190,7 @@ model Task {
 
   @@index([boardId])
   @@index([columnId, position])
+  @@index([dueDate])
   @@map("tasks")
 }
 

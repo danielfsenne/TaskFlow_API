@@ -4,11 +4,13 @@ export enum NotificationType {
   MemberAdded = 'MEMBER_ADDED',
   TaskAssigned = 'TASK_ASSIGNED',
   TaskCommented = 'TASK_COMMENTED',
+  TaskDueSoon = 'TASK_DUE_SOON',
 }
 
 export interface NotificationJob {
   type: NotificationType;
-  actorId: string;
+  // null quando quem avisa é o sistema (ex.: lembrete de prazo)
+  actorId: string | null;
   recipientIds: string[];
   data: Record<string, unknown>;
 }

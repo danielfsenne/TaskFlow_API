@@ -17,10 +17,12 @@ export class NotificationsProcessor extends WorkerHost {
   async process(job: Job<NotificationJob>): Promise<number> {
     const { type, actorId, recipientIds, data } = job.data;
 
-    const actor = await this.prisma.user.findUnique({
-      where: { id: actorId },
-      select: { id: true, name: true, avatarUrl: true },
-    });
+    const actor = actorId
+      ? await this.prisma.user.findUnique({
+          where: { id: actorId },
+          select: { id: true, name: true, avatarUrl: true },
+        })
+      : null;
 
     const existing = await this.prisma.user.findMany({
       where: { id: { in: recipientIds } },

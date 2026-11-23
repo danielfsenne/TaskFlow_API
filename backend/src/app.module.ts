@@ -17,6 +17,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
 import { RealtimeCoreModule } from './realtime/realtime-core.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { RemindersModule } from './reminders/reminders.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
 
@@ -64,6 +65,7 @@ import { UsersModule } from './users/users.module';
     TasksModule,
     CommentsModule,
     DashboardModule,
+    RemindersModule,
     RealtimeModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

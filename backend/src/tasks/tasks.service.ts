@@ -174,7 +174,9 @@ export class TasksService {
     const task = present(
       await this.prisma.task.update({
         where: { id },
-        data: dto,
+        // prazo novo libera um novo lembrete
+        data:
+          dto.dueDate !== undefined ? { ...dto, dueReminderSentAt: null } : dto,
         include: taskInclude,
       }),
     );
