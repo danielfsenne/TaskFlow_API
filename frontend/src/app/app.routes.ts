@@ -28,6 +28,13 @@ export const routes: Routes = [
       ),
   },
   {
+    // sem guard: o convite trata visitante, conta certa e conta errada
+    path: 'invite',
+    title: 'Convite · TaskFlow',
+    loadComponent: () =>
+      import('./features/auth/invite.component').then((m) => m.InviteComponent),
+  },
+  {
     // sem guard: o link do e-mail pode ser aberto logado ou não
     path: 'reset-password',
     title: 'Nova senha · TaskFlow',

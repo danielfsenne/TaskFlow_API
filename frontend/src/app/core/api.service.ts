@@ -9,6 +9,8 @@ import {
   Comment,
   CursorPage,
   DashboardStats,
+  Invitation,
+  InvitationPreview,
   Member,
   MyDashboard,
   NotificationPage,
@@ -149,6 +151,20 @@ export class ApiService {
   markAllNotificationsRead = () =>
     this.patch<{ updated: number }>('/notifications/read-all');
   deleteNotification = (id: string) => this.delete(`/notifications/${id}`);
+
+  // Convites
+  invitations = (orgId: string) =>
+    this.get<Invitation[]>(`/organizations/${orgId}/invitations`);
+  invite = (orgId: string, email: string, role: OrganizationRole) =>
+    this.post<Invitation>(`/organizations/${orgId}/invitations`, {
+      email,
+      role,
+    });
+  revokeInvitation = (id: string) => this.delete(`/invitations/${id}`);
+  invitationPreview = (token: string) =>
+    this.get<InvitationPreview>(`/invitations/token/${token}`);
+  acceptInvitation = (token: string) =>
+    this.post<{ organizationId: string }>(`/invitations/token/${token}/accept`);
 
   // Conta
   updateProfile = (name: string) => this.patch<User>('/users/me', { name });

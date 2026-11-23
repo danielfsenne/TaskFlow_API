@@ -214,3 +214,20 @@ export interface MyDashboard {
     openTasks: number;
   }[];
 }
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: OrganizationRole;
+  expiresAt: string;
+  createdAt: string;
+  invitedBy: { id: string; name: string };
+}
+
+export interface InvitationPreview {
+  email: string;
+  role: OrganizationRole;
+  organization: { id: string; name: string };
+  invitedBy: { id: string; name: string };
+  expired: boolean;
+}

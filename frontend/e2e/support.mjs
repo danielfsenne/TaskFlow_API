@@ -86,7 +86,7 @@ export const waitText = (page, text, timeout = 8000) =>
 
 export async function clickButton(page, label, scope = '') {
   const [btn] = await page.$$(
-    `xpath/.//${scope ? scope + '//' : ''}*[self::button or self::mat-option][contains(normalize-space(.), "${label}")]`,
+    `xpath/.//${scope ? scope + '//' : ''}*[self::button or self::a or self::mat-option][contains(normalize-space(.), "${label}")]`,
   );
   if (!btn) throw new Error(`botão não encontrado: ${label}`);
   await btn.click();

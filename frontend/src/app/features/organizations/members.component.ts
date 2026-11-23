@@ -12,6 +12,8 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,7 +23,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { Router } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { Member, Organization, OrganizationRole } from '../../core/models';
+import {
+  Invitation,
+  Member,
+  Organization,
+  OrganizationRole,
+} from '../../core/models';
 import { WorkspaceService } from '../../core/workspace.service';
 import { UiService } from '../../shared/dialogs';
 import { AvatarComponent } from '../../shared/avatar.component';
@@ -30,6 +37,7 @@ import { outranks, RoleLabelPipe, roleAtLeast } from '../../shared/labels';
 @Component({
   selector: 'app-members',
   imports: [
+    DatePipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -139,6 +147,32 @@ import { outranks, RoleLabelPipe, roleAtLeast } from '../../shared/labels';
         </li>
       }
     </ul>
+
+    @if (invitations().length) {
+      <h3 class="mb-2 mt-6 text-sm font-semibold text-ink">
+        Convites pendentes
+      </h3>
+      <ul class="card divide-y divide-slate-100" data-testid="invitations">
+        @for (i of invitations(); track i.id) {
+          <li
+            class="flex items-center gap-3 px-4 py-2.5"
+            [attr.data-invite]="i.email"
+          >
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-[13px] text-ink">{{ i.email }}</p>
+              <p class="text-xs text-slate-400">
+                convidado por {{ i.invitedBy.name }} · vale até
+                {{ i.expiresAt | date: 'dd/MM' }}
+              </p>
+            </div>
+            <span class="chip" [class]="roleClass[i.role]">{{
+              i.role | roleLabel
+            }}</span>
+            <button mat-button (click)="revoke(i)">Cancelar</button>
+          </li>
+        }
+      </ul>
+    }
   `,
 })
 export class MembersComponent implements OnInit {
@@ -151,6 +185,7 @@ export class MembersComponent implements OnInit {
 
   private readonly workspace = inject(WorkspaceService);
   readonly members = signal<Member[]>([]);
+  readonly invitations = signal<Invitation[]>([]);
   readonly roleClass: Record<OrganizationRole, string> = {
     OWNER: 'bg-slate-800 text-white',
     ADMIN: 'bg-slate-200 text-slate-700',
@@ -182,7 +217,13 @@ export class MembersComponent implements OnInit {
 
   private async load() {
     try {
-      this.members.set(await this.api.members(this.organization().id));
+      const orgId = this.organization().id;
+      const [members, invitations] = await Promise.all([
+        this.api.members(orgId),
+        this.canManage() ? this.api.invitations(orgId) : Promise.resolve([]),
+      ]);
+      this.members.set(members);
+      this.invitations.set(invitations);
     } catch (e) {
       this.ui.error(e);
     }
@@ -205,9 +246,51 @@ export class MembersComponent implements OnInit {
       formDir.resetForm({ email: '', role: 'MEMBER' });
       this.ui.toast(`${member.name} foi adicionado`);
     } catch (e) {
-      this.ui.error(e);
+      if (e instanceof HttpErrorResponse && e.status === 404) {
+        await this.offerInvite(formDir);
+      } else {
+        this.ui.error(e);
+      }
     } finally {
       this.adding.set(false);
+    }
+  }
+
+  private async offerInvite(formDir: FormGroupDirective) {
+    const { email, role } = this.form.getRawValue();
+    const address = email.trim().toLowerCase();
+    const ok = await this.ui.confirm({
+      title: 'Enviar convite?',
+      message: `Ninguém com o e-mail ${address} tem conta no TaskFlow. Enviamos um convite por e-mail; ao criar a conta, a pessoa entra na organização.`,
+      confirmLabel: 'Enviar convite',
+    });
+    if (!ok) return;
+    try {
+      const invitation = await this.api.invite(
+        this.organization().id,
+        address,
+        role,
+      );
+      this.invitations.update((list) => [
+        invitation,
+        ...list.filter((i) => i.email !== invitation.email),
+      ]);
+      formDir.resetForm({ email: '', role: 'MEMBER' });
+      this.ui.toast(`Convite enviado para ${address}`);
+    } catch (e) {
+      this.ui.error(e);
+    }
+  }
+
+  async revoke(invitation: Invitation) {
+    try {
+      await this.api.revokeInvitation(invitation.id);
+      this.invitations.update((list) =>
+        list.filter((i) => i.id !== invitation.id),
+      );
+      this.ui.toast('Convite cancelado');
+    } catch (e) {
+      this.ui.error(e);
     }
   }
 

@@ -1,4 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
+import {
+  Component,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import {
   NonNullableFormBuilder,
   ReactiveFormsModule,
@@ -12,6 +19,7 @@ import { Router, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../core/api-error';
 import { AuthService } from '../../core/auth/auth.service';
 import { LogoComponent } from '../../shared/logo.component';
+import { safeReturnUrl } from './login.component';
 
 @Component({
   selector: 'app-register',
@@ -101,6 +109,7 @@ import { LogoComponent } from '../../shared/logo.component';
           Já tem conta?
           <a
             routerLink="/login"
+            [queryParams]="{ returnUrl: returnUrl() }"
             class="font-medium text-brand-700 hover:underline"
             >Entrar</a
           >
@@ -112,6 +121,10 @@ import { LogoComponent } from '../../shared/logo.component';
 export class RegisterComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+
+  /** Query params: vindo de um convite, o e-mail já vem preenchido. */
+  readonly returnUrl = input<string>();
+  readonly email = input<string>();
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -128,6 +141,13 @@ export class RegisterComponent {
     ],
   });
 
+  constructor() {
+    effect(() => {
+      const email = this.email();
+      if (email) untracked(() => this.form.controls.email.setValue(email));
+    });
+  }
+
   async submit() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -142,7 +162,7 @@ export class RegisterComponent {
         email.trim().toLowerCase(),
         password,
       );
-      await this.router.navigateByUrl('/');
+      await this.router.navigateByUrl(safeReturnUrl(this.returnUrl()));
     } catch (e) {
       this.error.set(apiErrorMessage(e, 'Não foi possível criar a conta.'));
     } finally {

@@ -94,6 +94,7 @@ import { LogoComponent } from '../../shared/logo.component';
           Ainda não tem conta?
           <a
             routerLink="/register"
+            [queryParams]="{ returnUrl: returnUrl() }"
             class="font-medium text-brand-700 hover:underline"
             >Cadastre-se</a
           >
