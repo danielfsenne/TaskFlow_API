@@ -12,6 +12,10 @@ export const RealtimeEvent = {
   TaskMoved: 'task.moved', // { task, fromColumnId, positions }
   TaskDeleted: 'task.deleted', // { taskId, columnId }
 
+  LabelCreated: 'label.created', // { label }
+  LabelUpdated: 'label.updated', // { label }
+  LabelDeleted: 'label.deleted', // { labelId }
+
   CommentCreated: 'comment.created', // { taskId, comment }
   CommentUpdated: 'comment.updated', // { taskId, comment }
   CommentDeleted: 'comment.deleted', // { taskId, commentId }

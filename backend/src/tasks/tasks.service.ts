@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, Project, Task } from '@prisma/client';
 import { BoardAccessService } from '../boards/board-access.service';
+import { labelSelect } from '../boards/labels.service';
 import { doneColumnId } from '../common/completion';
 import {
   changedPositions,
@@ -33,14 +34,19 @@ const taskInclude = {
     select: { assignedAt: true, user: userSummary },
     orderBy: { assignedAt: 'asc' },
   },
+  labels: {
+    select: { label: { select: labelSelect } },
+    orderBy: { label: { name: 'asc' } },
+  },
   _count: { select: { comments: true } },
 } satisfies Prisma.TaskInclude;
 
 type TaskWithRelations = Prisma.TaskGetPayload<{ include: typeof taskInclude }>;
 
-function present({ assignees, ...task }: TaskWithRelations) {
+function present({ assignees, labels, ...task }: TaskWithRelations) {
   return {
     ...task,
+    labels: labels.map((l) => l.label),
     assignees: assignees.map(({ user, assignedAt }) => ({
       ...user,
       assignedAt,
@@ -143,6 +149,9 @@ export class TasksService {
           : undefined,
         assignees: query.assigneeId
           ? { some: { userId: query.assigneeId } }
+          : undefined,
+        labels: query.labelId
+          ? { some: { labelId: query.labelId } }
           : undefined,
       },
       include: taskInclude,
@@ -259,6 +268,31 @@ export class TasksService {
       added,
       taskEventData(task, project),
     );
+    const updated = await this.findOne(id, userId);
+    this.realtime.toBoard(task.boardId, RealtimeEvent.TaskUpdated, userId, {
+      task: updated,
+    });
+    return updated;
+  }
+
+  // todas precisam ser etiquetas do quadro da tarefa
+  async setLabels(id: string, userId: string, labelIds: string[]) {
+    const { task } = await this.taskAccess.getWritable(id, userId);
+    const count = await this.prisma.label.count({
+      where: { id: { in: labelIds }, boardId: task.boardId },
+    });
+    if (count !== labelIds.length) {
+      throw new BadRequestException('Etiqueta não pertence a este quadro');
+    }
+    await this.prisma.$transaction([
+      this.prisma.taskLabel.deleteMany({
+        where: { taskId: id, labelId: { notIn: labelIds } },
+      }),
+      this.prisma.taskLabel.createMany({
+        data: labelIds.map((labelId) => ({ taskId: id, labelId })),
+        skipDuplicates: true,
+      }),
+    ]);
     const updated = await this.findOne(id, userId);
     this.realtime.toBoard(task.boardId, RealtimeEvent.TaskUpdated, userId, {
       task: updated,

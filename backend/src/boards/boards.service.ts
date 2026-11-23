@@ -6,6 +6,7 @@ import { ProjectAccessService } from '../projects/project-access.service';
 import { RealtimeEvent } from '../realtime/realtime-events';
 import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { BoardAccessService } from './board-access.service';
+import { labelSelect } from './labels.service';
 import {
   CreateBoardDto,
   DEFAULT_COLUMNS,
@@ -41,7 +42,10 @@ export class BoardsService {
           create: names.map((name, i) => ({ name, position: positions[i] })),
         },
       },
-      include: { columns: columnsOrdered },
+      include: {
+        columns: columnsOrdered,
+        labels: { select: labelSelect, orderBy: { name: 'asc' } },
+      },
     });
   }
 
@@ -58,7 +62,10 @@ export class BoardsService {
     await this.access.getBoardAccess(id, userId);
     return this.prisma.board.findUniqueOrThrow({
       where: { id },
-      include: { columns: columnsOrdered },
+      include: {
+        columns: columnsOrdered,
+        labels: { select: labelSelect, orderBy: { name: 'asc' } },
+      },
     });
   }
 

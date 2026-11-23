@@ -63,7 +63,7 @@ describe('TasksService', () => {
   });
   const asMember = (role: OrganizationRole = OrganizationRole.MEMBER) =>
     prisma.organizationMember.findUnique.mockResolvedValue({ role });
-  const fullTask = { id: 't1', assignees: [] };
+  const fullTask = { id: 't1', assignees: [], labels: [] };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -91,6 +91,7 @@ describe('TasksService', () => {
         title: 'Nova',
         boardId: 'b1',
         assignees: [],
+        labels: [],
       });
       await service.create('b1', 'u', {
         title: 'Nova',

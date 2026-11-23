@@ -20,6 +20,7 @@ import {
   ListTasksQueryDto,
   MoveTaskDto,
   SetAssigneesDto,
+  SetLabelsDto,
   UpdateTaskDto,
 } from './dto/task.dto';
 import { TasksService } from './tasks.service';
@@ -87,6 +88,16 @@ export class TasksController {
     @Body() dto: SetAssigneesDto,
   ) {
     return this.tasks.setAssignees(id, user.id, dto.userIds);
+  }
+
+  @Put('tasks/:id/labels')
+  @ApiOperation({ summary: 'Define a lista completa de etiquetas' })
+  setLabels(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+    @Body() dto: SetLabelsDto,
+  ) {
+    return this.tasks.setLabels(id, user.id, dto.labelIds);
   }
 
   @Delete('tasks/:id')

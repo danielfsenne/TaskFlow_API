@@ -117,11 +117,25 @@ export class SetAssigneesDto {
   userIds!: string[];
 }
 
+export class SetLabelsDto {
+  @ApiProperty({ type: [String], description: 'Lista completa de etiquetas' })
+  @IsArray()
+  @ArrayUnique()
+  @ArrayMaxSize(10)
+  @IsUUID('all', { each: true })
+  labelIds!: string[];
+}
+
 export class ListTasksQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
   columnId?: string;
+
+  @ApiPropertyOptional({ description: 'Apenas tarefas com esta etiqueta' })
+  @IsOptional()
+  @IsUUID()
+  labelId?: string;
 
   @ApiPropertyOptional({ description: 'Apenas tarefas deste responsável' })
   @IsOptional()
