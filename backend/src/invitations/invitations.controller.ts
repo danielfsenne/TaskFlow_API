@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -17,6 +16,7 @@ import { AuthRateLimit } from '../auth/auth-throttle';
 import { AuthUser } from '../auth/types/auth-user';
 import { AddMemberDto } from '../organizations/dto/organization.dto';
 import { InvitationsService } from './invitations.service';
+import { UuidPipe } from '../common/validation';
 
 class TokenParam {
   @IsHexadecimal()
@@ -37,7 +37,7 @@ export class InvitationsController {
     summary: 'Convida por e-mail quem ainda não tem conta (ADMIN+)',
   })
   invite(
-    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Param('orgId', UuidPipe) orgId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: AddMemberDto,
   ) {
@@ -46,20 +46,14 @@ export class InvitationsController {
 
   @Get('organizations/:orgId/invitations')
   @ApiOperation({ summary: 'Convites pendentes (ADMIN+)' })
-  list(
-    @Param('orgId', ParseUUIDPipe) orgId: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  list(@Param('orgId', UuidPipe) orgId: string, @CurrentUser() user: AuthUser) {
     return this.invitations.list(orgId, user.id);
   }
 
   @Delete('invitations/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Cancela um convite pendente (ADMIN+)' })
-  revoke(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  revoke(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.invitations.revoke(id, user.id);
   }
 

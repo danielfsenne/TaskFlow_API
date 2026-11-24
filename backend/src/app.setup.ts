@@ -1,6 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
+import { validationExceptionFactory } from './common/validation';
 import { ConfiguredIoAdapter } from './realtime/socket-io.adapter';
 
 // usado pelo main.ts e pelos testes e2e, para os dois rodarem igual
@@ -23,6 +24,7 @@ export function configureApp(app: INestApplication) {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: validationExceptionFactory,
     }),
   );
   app.useWebSocketAdapter(

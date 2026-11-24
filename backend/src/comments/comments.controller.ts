@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -20,6 +19,7 @@ import {
   ListCommentsQueryDto,
   UpdateCommentDto,
 } from './dto/comment.dto';
+import { UuidPipe } from '../common/validation';
 
 @ApiTags('comments')
 @ApiBearerAuth()
@@ -29,7 +29,7 @@ export class CommentsController {
 
   @Post('tasks/:taskId/comments')
   create(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('taskId', UuidPipe) taskId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateCommentDto,
   ) {
@@ -39,7 +39,7 @@ export class CommentsController {
   @Get('tasks/:taskId/comments')
   @ApiOperation({ summary: 'Comentários da tarefa, paginados por cursor' })
   findAll(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('taskId', UuidPipe) taskId: string,
     @CurrentUser() user: AuthUser,
     @Query() query: ListCommentsQueryDto,
   ) {
@@ -49,7 +49,7 @@ export class CommentsController {
   @Patch('comments/:id')
   @ApiOperation({ summary: 'Edita o comentário (só o autor)' })
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateCommentDto,
   ) {
@@ -61,10 +61,7 @@ export class CommentsController {
   @ApiOperation({
     summary: 'Exclui o comentário (autor, criador do projeto ou ADMIN+)',
   })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  remove(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.comments.remove(id, user.id);
   }
 }

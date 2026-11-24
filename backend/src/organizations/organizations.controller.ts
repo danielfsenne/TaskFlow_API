@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -20,6 +19,7 @@ import {
   UpdateOrganizationDto,
 } from './dto/organization.dto';
 import { OrganizationsService } from './organizations.service';
+import { UuidPipe } from '../common/validation';
 
 @ApiTags('organizations')
 @ApiBearerAuth()
@@ -40,17 +40,14 @@ export class OrganizationsController {
   }
 
   @Get(':id')
-  findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  findOne(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.organizations.findOne(id, user.id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza a organização (ADMIN+)' })
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateOrganizationDto,
   ) {
@@ -60,16 +57,13 @@ export class OrganizationsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Exclui a organização (OWNER)' })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  remove(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.organizations.remove(id, user.id);
   }
 
   @Get(':id/members')
   listMembers(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
   ) {
     return this.organizations.listMembers(id, user.id);
@@ -80,7 +74,7 @@ export class OrganizationsController {
     summary: 'Adiciona um usuário existente pelo e-mail (ADMIN+)',
   })
   addMember(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: AddMemberDto,
   ) {
@@ -90,8 +84,8 @@ export class OrganizationsController {
   @Patch(':id/members/:userId')
   @ApiOperation({ summary: 'Altera o papel de um membro' })
   updateMemberRole(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('userId', ParseUUIDPipe) userId: string,
+    @Param('id', UuidPipe) id: string,
+    @Param('userId', UuidPipe) userId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateMemberRoleDto,
   ) {
@@ -102,8 +96,8 @@ export class OrganizationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove um membro (ou sai, se for você)' })
   removeMember(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('userId', ParseUUIDPipe) userId: string,
+    @Param('id', UuidPipe) id: string,
+    @Param('userId', UuidPipe) userId: string,
     @CurrentUser() user: AuthUser,
   ) {
     return this.organizations.removeMember(id, user.id, userId);

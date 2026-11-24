@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Put,
@@ -25,6 +24,7 @@ import {
 } from './dto/task.dto';
 import { TaskActivityService } from './task-activity.service';
 import { TasksService } from './tasks.service';
+import { UuidPipe } from '../common/validation';
 
 @ApiTags('tasks')
 @ApiBearerAuth()
@@ -38,7 +38,7 @@ export class TasksController {
   @Post('boards/:boardId/tasks')
   @ApiOperation({ summary: 'Cria uma tarefa no fim da coluna' })
   create(
-    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('boardId', UuidPipe) boardId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateTaskDto,
   ) {
@@ -50,7 +50,7 @@ export class TasksController {
     summary: 'Tarefas do quadro, ordenadas por coluna e posição',
   })
   findAll(
-    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('boardId', UuidPipe) boardId: string,
     @CurrentUser() user: AuthUser,
     @Query() query: ListTasksQueryDto,
   ) {
@@ -58,16 +58,13 @@ export class TasksController {
   }
 
   @Get('tasks/:id')
-  findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  findOne(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.tasks.findOne(id, user.id);
   }
 
   @Patch('tasks/:id')
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateTaskDto,
   ) {
@@ -77,7 +74,7 @@ export class TasksController {
   @Patch('tasks/:id/move')
   @ApiOperation({ summary: 'Reordena ou troca a tarefa de coluna' })
   move(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: MoveTaskDto,
   ) {
@@ -87,7 +84,7 @@ export class TasksController {
   @Put('tasks/:id/assignees')
   @ApiOperation({ summary: 'Define a lista completa de responsáveis' })
   setAssignees(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: SetAssigneesDto,
   ) {
@@ -97,7 +94,7 @@ export class TasksController {
   @Put('tasks/:id/labels')
   @ApiOperation({ summary: 'Define a lista completa de etiquetas' })
   setLabels(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: SetLabelsDto,
   ) {
@@ -106,10 +103,7 @@ export class TasksController {
 
   @Get('tasks/:id/activity')
   @ApiOperation({ summary: 'Histórico de alterações (mais recentes primeiro)' })
-  activity(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  activity(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.activityService.list(id, user.id);
   }
 
@@ -118,10 +112,7 @@ export class TasksController {
   @ApiOperation({
     summary: 'Exclui a tarefa (autor, criador do projeto ou ADMIN+)',
   })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  remove(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.tasks.remove(id, user.id);
   }
 }

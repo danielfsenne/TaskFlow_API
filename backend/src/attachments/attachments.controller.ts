@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Post,
   Res,
   UploadedFile,
@@ -27,6 +26,7 @@ import {
   ATTACHMENT_MAX_BYTES,
   AttachmentsService,
 } from './attachments.service';
+import { UuidPipe } from '../common/validation';
 
 @ApiTags('attachments')
 @ApiBearerAuth()
@@ -37,7 +37,7 @@ export class AttachmentsController {
   @Get('tasks/:taskId/attachments')
   @ApiOperation({ summary: 'Anexos da tarefa' })
   list(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('taskId', UuidPipe) taskId: string,
     @CurrentUser() user: AuthUser,
   ) {
     return this.attachments.list(taskId, user.id);
@@ -56,7 +56,7 @@ export class AttachmentsController {
   })
   @ApiOperation({ summary: 'Anexa um arquivo à tarefa (até 10 MB)' })
   upload(
-    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('taskId', UuidPipe) taskId: string,
     @CurrentUser() user: AuthUser,
     @UploadedFile() file?: Express.Multer.File,
   ) {
@@ -67,7 +67,7 @@ export class AttachmentsController {
   @Get('attachments/:id/file')
   @ApiOperation({ summary: 'Conteúdo do anexo (imagens abrem, o resto baixa)' })
   async download(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
   ) {
@@ -96,10 +96,7 @@ export class AttachmentsController {
   @Delete('attachments/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Exclui o anexo (quem enviou ou gerente)' })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  remove(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.attachments.remove(id, user.id);
   }
 }

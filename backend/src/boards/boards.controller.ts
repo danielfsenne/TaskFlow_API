@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -22,6 +21,7 @@ import {
   UpdateBoardDto,
   UpdateColumnDto,
 } from './dto/board.dto';
+import { UuidPipe } from '../common/validation';
 
 @ApiTags('boards')
 @ApiBearerAuth()
@@ -37,7 +37,7 @@ export class BoardsController {
     summary: 'Cria um quadro com colunas iniciais (qualquer membro)',
   })
   create(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('projectId', UuidPipe) projectId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateBoardDto,
   ) {
@@ -46,7 +46,7 @@ export class BoardsController {
 
   @Get('projects/:projectId/boards')
   findAll(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('projectId', UuidPipe) projectId: string,
     @CurrentUser() user: AuthUser,
   ) {
     return this.boards.findAll(projectId, user.id);
@@ -54,16 +54,13 @@ export class BoardsController {
 
   @Get('boards/:id')
   @ApiOperation({ summary: 'Quadro com as colunas em ordem' })
-  findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  findOne(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.boards.findOne(id, user.id);
   }
 
   @Patch('boards/:id')
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateBoardDto,
   ) {
@@ -75,17 +72,14 @@ export class BoardsController {
   @ApiOperation({
     summary: 'Exclui o quadro e suas tarefas (criador do projeto ou ADMIN+)',
   })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  remove(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.boards.remove(id, user.id);
   }
 
   @Post('boards/:boardId/columns')
   @ApiOperation({ summary: 'Adiciona uma coluna no fim do quadro' })
   createColumn(
-    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('boardId', UuidPipe) boardId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateColumnDto,
   ) {
@@ -94,7 +88,7 @@ export class BoardsController {
 
   @Patch('columns/:id')
   updateColumn(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateColumnDto,
   ) {
@@ -104,7 +98,7 @@ export class BoardsController {
   @Patch('columns/:id/move')
   @ApiOperation({ summary: 'Reordena a coluna dentro do quadro' })
   moveColumn(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: MoveColumnDto,
   ) {
@@ -115,7 +109,7 @@ export class BoardsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Exclui uma coluna vazia' })
   removeColumn(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
   ) {
     return this.columns.remove(id, user.id);

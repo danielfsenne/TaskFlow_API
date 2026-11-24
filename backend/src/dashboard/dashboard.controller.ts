@@ -1,8 +1,9 @@
-import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthUser } from '../auth/types/auth-user';
 import { DashboardService } from './dashboard.service';
+import { UuidPipe } from '../common/validation';
 
 @ApiTags('dashboard')
 @ApiBearerAuth()
@@ -21,7 +22,7 @@ export class DashboardController {
   @Get('organizations/:orgId/dashboard')
   @ApiOperation({ summary: 'Indicadores da organização, por projeto' })
   organization(
-    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Param('orgId', UuidPipe) orgId: string,
     @CurrentUser() user: AuthUser,
   ) {
     return this.dashboard.organization(orgId, user.id);
@@ -30,7 +31,7 @@ export class DashboardController {
   @Get('projects/:projectId/dashboard')
   @ApiOperation({ summary: 'Indicadores do projeto, por quadro' })
   project(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('projectId', UuidPipe) projectId: string,
     @CurrentUser() user: AuthUser,
   ) {
     return this.dashboard.project(projectId, user.id);

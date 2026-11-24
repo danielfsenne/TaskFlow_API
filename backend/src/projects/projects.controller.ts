@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -20,6 +19,7 @@ import {
   UpdateProjectDto,
 } from './dto/project.dto';
 import { ProjectsService } from './projects.service';
+import { UuidPipe } from '../common/validation';
 
 @ApiTags('projects')
 @ApiBearerAuth()
@@ -30,7 +30,7 @@ export class ProjectsController {
   @Post('organizations/:orgId/projects')
   @ApiOperation({ summary: 'Cria um projeto na organização (qualquer membro)' })
   create(
-    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Param('orgId', UuidPipe) orgId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateProjectDto,
   ) {
@@ -40,7 +40,7 @@ export class ProjectsController {
   @Get('organizations/:orgId/projects')
   @ApiOperation({ summary: 'Lista os projetos da organização' })
   findAll(
-    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Param('orgId', UuidPipe) orgId: string,
     @CurrentUser() user: AuthUser,
     @Query() query: ListProjectsQueryDto,
   ) {
@@ -48,10 +48,7 @@ export class ProjectsController {
   }
 
   @Get('projects/:id')
-  findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  findOne(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.projects.findOne(id, user.id);
   }
 
@@ -60,7 +57,7 @@ export class ProjectsController {
     summary: 'Atualiza ou arquiva o projeto (criador ou ADMIN+)',
   })
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateProjectDto,
   ) {
@@ -70,10 +67,7 @@ export class ProjectsController {
   @Delete('projects/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Exclui o projeto (ADMIN+)' })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  remove(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.projects.remove(id, user.id);
   }
 }

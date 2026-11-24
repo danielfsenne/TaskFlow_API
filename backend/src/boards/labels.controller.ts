@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -15,6 +14,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthUser } from '../auth/types/auth-user';
 import { CreateLabelDto, UpdateLabelDto } from './dto/label.dto';
 import { LabelsService } from './labels.service';
+import { UuidPipe } from '../common/validation';
 
 @ApiTags('labels')
 @ApiBearerAuth()
@@ -25,7 +25,7 @@ export class LabelsController {
   @Get('boards/:boardId/labels')
   @ApiOperation({ summary: 'Etiquetas do quadro' })
   list(
-    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('boardId', UuidPipe) boardId: string,
     @CurrentUser() user: AuthUser,
   ) {
     return this.labels.list(boardId, user.id);
@@ -34,7 +34,7 @@ export class LabelsController {
   @Post('boards/:boardId/labels')
   @ApiOperation({ summary: 'Cria uma etiqueta no quadro' })
   create(
-    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('boardId', UuidPipe) boardId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateLabelDto,
   ) {
@@ -44,7 +44,7 @@ export class LabelsController {
   @Patch('labels/:id')
   @ApiOperation({ summary: 'Renomeia ou troca a cor da etiqueta' })
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', UuidPipe) id: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateLabelDto,
   ) {
@@ -54,10 +54,7 @@ export class LabelsController {
   @Delete('labels/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Exclui a etiqueta e a tira das tarefas' })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  remove(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.labels.remove(id, user.id);
   }
 }

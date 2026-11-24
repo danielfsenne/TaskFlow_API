@@ -5,7 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Patch,
   Query,
 } from '@nestjs/common';
@@ -14,6 +13,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthUser } from '../auth/types/auth-user';
 import { ListNotificationsQueryDto } from './dto/notification.dto';
 import { NotificationsService } from './notifications.service';
+import { UuidPipe } from '../common/validation';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
@@ -44,19 +44,13 @@ export class NotificationsController {
   }
 
   @Patch(':id/read')
-  markRead(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  markRead(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.notifications.markRead(id, user.id);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  remove(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.notifications.remove(id, user.id);
   }
 }
