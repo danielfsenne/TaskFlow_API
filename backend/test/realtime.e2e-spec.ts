@@ -23,6 +23,7 @@ describe('Realtime (e2e)', () => {
   let member: TestUser;
   let outsider: TestUser;
   let orgId: string;
+  let projectId: string;
   let boardId: string;
   let todo: string;
   let doing: string;
@@ -83,6 +84,7 @@ describe('Realtime (e2e)', () => {
       .post(`/organizations/${orgId}/projects`)
       .send({ name: 'Projeto RT' })
       .expect(201);
+    projectId = project.body.id;
     const board = await apiAs(app, owner)
       .post(`/projects/${project.body.id}/boards`)
       .send({ name: 'Q' })
@@ -269,5 +271,31 @@ describe('Realtime (e2e)', () => {
     await ack(sOwner, 'board:join', { boardId });
     await apiAs(app, owner).delete(`/boards/${boardId}`).expect(204);
     expect((await waitEvent(sOwner, 'board.deleted')).boardId).toBe(boardId);
+  });
+
+  it('arquivar ou excluir o projeto avisa os quadros abertos', async () => {
+    const board = await apiAs(app, owner)
+      .post(`/projects/${projectId}/boards`)
+      .send({ name: 'Outro' })
+      .expect(201);
+    expect(
+      (await ack(sOwner, 'board:join', { boardId: board.body.id })).ok,
+    ).toBe(true);
+
+    await apiAs(app, owner)
+      .patch(`/projects/${projectId}`)
+      .send({ archived: true })
+      .expect(200);
+    const updated = await waitEvent(sOwner, 'project.updated');
+    expect(updated).toMatchObject({
+      actorId: owner.id,
+      project: { id: projectId, archived: true },
+    });
+
+    await apiAs(app, owner).delete(`/projects/${projectId}`).expect(204);
+    expect(await waitEvent(sOwner, 'project.deleted')).toMatchObject({
+      projectId,
+      organizationId: orgId,
+    });
   });
 });

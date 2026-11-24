@@ -2,6 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { OrganizationRole } from '@prisma/client';
 import { OrganizationAccessService } from '../organizations/organization-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { ProjectAccessService } from './project-access.service';
 import { ProjectsService } from './projects.service';
 
@@ -9,6 +10,7 @@ describe('Projetos — controle de acesso', () => {
   const prisma = {
     project: { findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
     organizationMember: { findUnique: jest.fn() },
+    board: { findMany: jest.fn() },
   };
   let access: ProjectAccessService;
   let service: ProjectsService;
@@ -26,7 +28,8 @@ describe('Projetos — controle de acesso', () => {
     jest.resetAllMocks();
     const p = prisma as unknown as PrismaService;
     access = new ProjectAccessService(p, new OrganizationAccessService(p));
-    service = new ProjectsService(p, access);
+    prisma.board.findMany.mockResolvedValue([]);
+    service = new ProjectsService(p, access, new RealtimeEmitter());
   });
 
   it('retorna 404 para quem não é membro da organização', async () => {

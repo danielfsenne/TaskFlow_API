@@ -1,4 +1,8 @@
 export const RealtimeEvent = {
+  // enviados a cada quadro do projeto
+  ProjectUpdated: 'project.updated', // { project }  (nome, arquivamento)
+  ProjectDeleted: 'project.deleted', // { projectId, organizationId }
+
   BoardUpdated: 'board.updated', // { board }
   BoardDeleted: 'board.deleted', // { boardId }
 

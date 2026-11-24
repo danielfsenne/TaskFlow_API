@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { OrganizationRole, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeEvent, RealtimeEventName } from '../realtime/realtime-events';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import {
   CreateProjectDto,
   ListProjectsQueryDto,
@@ -18,6 +20,7 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly realtime: RealtimeEmitter,
   ) {}
 
   async create(organizationId: string, userId: string, dto: CreateProjectDto) {
@@ -57,15 +60,50 @@ export class ProjectsService {
       this.access.assertNotArchived(project);
     }
 
-    return this.prisma.project.update({
+    const updated = await this.prisma.project.update({
       where: { id },
       data: dto,
       include: projectInclude,
     });
+    await this.toBoards(id, RealtimeEvent.ProjectUpdated, userId, {
+      project: updated,
+    });
+    return updated;
   }
 
   async remove(id: string, userId: string) {
-    await this.access.assertRole(id, userId, OrganizationRole.ADMIN);
+    const { project } = await this.access.assertRole(
+      id,
+      userId,
+      OrganizationRole.ADMIN,
+    );
+    // os quadros somem junto (cascade): guarda os ids antes de apagar
+    const boards = await this.boardIds(id);
     await this.prisma.project.delete({ where: { id } });
+    for (const boardId of boards) {
+      this.realtime.toBoard(boardId, RealtimeEvent.ProjectDeleted, userId, {
+        projectId: id,
+        organizationId: project.organizationId,
+      });
+    }
+  }
+
+  private async boardIds(projectId: string) {
+    const boards = await this.prisma.board.findMany({
+      where: { projectId },
+      select: { id: true },
+    });
+    return boards.map((b) => b.id);
+  }
+
+  private async toBoards(
+    projectId: string,
+    event: RealtimeEventName,
+    actorId: string,
+    data: Record<string, unknown>,
+  ) {
+    for (const boardId of await this.boardIds(projectId)) {
+      this.realtime.toBoard(boardId, event, actorId, data);
+    }
   }
 }
