@@ -500,6 +500,10 @@ export const BoardStore = signalStore(
         if (board) patchState(store, { board: { ...board, name } });
       },
 
+      setProject(project: Project) {
+        if (project.id === store.project()?.id) patchState(store, { project });
+      },
+
       // idempotente: a resposta da API e o eco do tempo real chamam os dois
       attachmentAdded(taskId: string, attachmentId: string) {
         if (seenAttachments.has(attachmentId)) return;

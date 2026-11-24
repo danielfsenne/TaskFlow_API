@@ -32,6 +32,7 @@ import {
   Comment,
   Label,
   Positioned,
+  Project,
   Task,
   TaskPriority,
 } from '../../core/models';
@@ -458,6 +459,25 @@ export class BoardComponent {
       'board.updated',
     ).subscribe((e) => {
       if (e.board.id === s.board()?.id) s.setBoardName(e.board.name);
+    });
+    forThisBoard<BoardEvent & { project: Project }>(
+      'project.updated',
+    ).subscribe((e) => {
+      const wasArchived = s.readOnly();
+      s.setProject(e.project);
+      if (e.actorId !== s.me() && !wasArchived && e.project.archived)
+        this.ui.toast(
+          'O projeto foi arquivado: o quadro ficou somente leitura.',
+        );
+    });
+    forThisBoard<BoardEvent & { projectId: string; organizationId: string }>(
+      'project.deleted',
+    ).subscribe((e) => {
+      if (e.projectId !== s.board()?.projectId) return;
+      if (e.actorId !== s.me())
+        this.ui.toast('O projeto deste quadro foi excluído.');
+      this.dialog.closeAll();
+      void this.router.navigate(['/orgs', e.organizationId]);
     });
     forThisBoard<BoardEvent & { boardId: string }>('board.deleted').subscribe(
       (e) => {
