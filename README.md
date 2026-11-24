@@ -88,13 +88,17 @@ API_URL=http://localhost:3100 npm start
 | `CORS_ORIGIN` | `http://localhost:4200` | Origem liberada para HTTP e WebSocket |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | troque | Assinatura dos tokens |
 | `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | `15m` / `7d` | Validade dos tokens |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | `localhost` / `6379` / vazio | Fila de notificações (BullMQ) |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | `localhost` / `6379` / vazio | Fila de notificações (BullMQ) e tempo real entre instâncias da API |
 | `THROTTLE_AUTH_LIMIT` | `10` | Tentativas por minuto, por IP, em login, cadastro e recuperação de senha |
 | `TRUST_PROXY` | `false` | `true` atrás de nginx ou load balancer, para o limite usar o IP real |
 | `APP_URL` | `http://localhost:4200` | Endereço do frontend usado no link de redefinição de senha |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Mailpit (`localhost` / `1025`) | Envio de e-mails |
 | `MAIL_FROM` | `TaskFlow <nao-responda@taskflow.local>` | Remetente dos e-mails |
-| `UPLOAD_DIR` | `uploads` | Pasta das fotos de perfil e dos anexos |
+| `STORAGE_DRIVER` | `local` | Onde ficam fotos e anexos: `local` (pasta) ou `s3` |
+| `UPLOAD_DIR` | `uploads` | Pasta das fotos e anexos quando o driver é `local` |
+| `S3_BUCKET` / `S3_REGION` | vazio / `us-east-1` | Bucket quando o driver é `s3` |
+| `S3_ENDPOINT` / `S3_FORCE_PATH_STYLE` | vazio / `false` | Só para serviços compatíveis com S3 (MinIO, R2...) |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | vazio | Sem elas, o SDK usa as credenciais do ambiente (IAM, `~/.aws`) |
 | `REMINDERS_INTERVAL_MINUTES` | `15` | De quanto em quanto tempo a API procura tarefas que vencem nas próximas 24 h para avisar os responsáveis (`0` desliga) |
 
 ### Problemas comuns
@@ -103,18 +107,19 @@ API_URL=http://localhost:3100 npm start
 - **E-mail de redefinição não chega**: em desenvolvimento ele vai para o Mailpit (http://localhost:8025), não para a caixa real. Em produção, configure as variáveis `SMTP_*`.
 
 - **`EADDRINUSE` na porta 3000**: outro programa (às vezes o próprio Docker Desktop) está usando a porta. Rode a API em outra, por exemplo `PORT=3100 npm run start:dev`, e o frontend com `API_URL=http://localhost:3100 npm start`.
-- **Notificações não chegam**: confira se o Redis está de pé (`docker compose ps`). Sem ele a API continua funcionando e as notificações ficam guardadas na memória até o Redis voltar; se a API reiniciar nesse meio-tempo, elas se perdem.
+- **Notificações não chegam**: confira se o Redis está de pé (`docker compose ps`). Sem ele a API continua funcionando: as notificações que não entram na fila ficam guardadas no banco e são reenviadas a cada 30 s, quando o Redis voltar.
 - **Erro de validação do ambiente ao subir a API**: falta alguma variável no `backend/.env` ou um segredo JWT tem menos de 32 caracteres.
 
 ## Como funciona
 
 - Organizações têm papéis **Dono**, **Admin** e **Membro**. Projetos, quadros e tarefas herdam o acesso da organização; quem não é membro recebe 404.
 - Uma tarefa conta como **concluída** quando está na última coluna do quadro. É essa regra que alimenta os dashboards.
-- Projetos arquivados ficam somente leitura.
+- Projetos arquivados ficam somente leitura; quem está com um quadro do projeto aberto vê a mudança na hora.
 - Login, cadastro e recuperação de senha têm limite de tentativas por IP. Redefinir ou trocar a senha encerra as sessões abertas em outros aparelhos.
-- Fotos de perfil e anexos ficam em `backend/uploads/` e são servidos pela própria API. Anexos exigem login e, fora imagens comuns, sempre baixam (nunca abrem no navegador). Com mais de uma instância da API, essa pasta precisa ser compartilhada (ou trocada por um storage como o S3).
+- Fotos de perfil e anexos ficam em `backend/uploads/` ou num bucket S3 (`STORAGE_DRIVER=s3`) e passam sempre pela API. Anexos exigem login e, fora imagens comuns, sempre baixam (nunca abrem no navegador).
 - Tema claro, escuro ou igual ao sistema, no menu do usuário (a escolha fica salva no navegador).
 - O quadro é sincronizado ao vivo via Socket.IO entre todos que estão com ele aberto; as notificações chegam pelo sino sem recarregar a página.
+- Dá para rodar várias instâncias da API atrás de um balanceador: o tempo real passa pelo Redis e os arquivos vão para o S3. Os erros de validação da API vêm em português.
 
 ## Testes
 
@@ -133,6 +138,13 @@ cd backend && npm run test:e2e
 #   cd backend && THROTTLE_AUTH_LIMIT=200 npm run start:dev
 cd frontend && npm run e2e          # todas as suítes
 cd frontend && npm run e2e board    # só as que têm "board" no nome
+```
+
+Para rodar os testes de anexos e de perfil contra um S3 local (S3Mock), suba o perfil `s3` do compose:
+
+```bash
+docker compose --profile s3 up -d s3
+cd backend && STORAGE_DRIVER=s3 S3_BUCKET=taskflow S3_ENDPOINT=http://localhost:9090 \n  S3_FORCE_PATH_STYLE=true S3_ACCESS_KEY_ID=x S3_SECRET_ACCESS_KEY=x \n  npm run test:e2e -- attachments profile
 ```
 
 Os testes do navegador usam o Chrome do sistema; para outro caminho, defina `CHROME_PATH`. A URL do app pode ser trocada com `E2E_APP_URL` (padrão `http://localhost:4200`). Se uma suíte falhar, a captura da tela fica em `frontend/e2e/.output/`.
