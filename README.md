@@ -123,7 +123,7 @@ API_URL=http://localhost:3100 npm start
 
 ## Testes
 
-Todos precisam do PostgreSQL e do Redis do `docker compose` no ar.
+Os do backend e os e2e do frontend precisam do PostgreSQL e do Redis do `docker compose` no ar.
 
 ```bash
 # Backend: unitários
@@ -131,6 +131,9 @@ cd backend && npm test
 
 # Backend: e2e (sobe a API em memória e usa o banco e o Redis)
 cd backend && npm run test:e2e
+
+# Frontend: unitários (Chrome headless, não precisa da API)
+cd frontend && npm run test:ci
 
 # Frontend: e2e no navegador (Chrome instalado)
 # com a API e o `ng serve` rodando, e a API com limite alto de tentativas,
