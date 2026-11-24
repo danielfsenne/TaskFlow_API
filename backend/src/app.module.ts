@@ -15,6 +15,7 @@ import { InvitationsModule } from './invitations/invitations.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { StorageModule } from './storage/storage.module';
 import { ProjectsModule } from './projects/projects.module';
 import { RealtimeCoreModule } from './realtime/realtime-core.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -55,6 +56,7 @@ import { UsersModule } from './users/users.module';
       }),
     }),
     PrismaModule,
+    StorageModule,
     RealtimeCoreModule,
     HealthModule,
     AuthModule,

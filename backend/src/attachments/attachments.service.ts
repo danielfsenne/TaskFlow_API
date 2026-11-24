@@ -7,13 +7,12 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { mkdir, readdir, stat, unlink, writeFile } from 'fs/promises';
-import { extname, join, resolve } from 'path';
+import { extname } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeEvent } from '../realtime/realtime-events';
 import { RealtimeEmitter } from '../realtime/realtime.emitter';
+import { FileStorage } from '../storage/file-storage';
 import { TaskAccessService } from '../tasks/task-access.service';
 import {
   ActivityType,
@@ -22,6 +21,8 @@ import {
 
 export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PER_TASK = 20;
+const PREFIX = 'attachments';
+const key = (storedName: string) => `${PREFIX}/${storedName}`;
 const SWEEP_EVERY_MS = 6 * 60 * 60 * 1000;
 // arquivo recém-gravado ainda pode estar esperando o registro no banco
 const ORPHAN_MIN_AGE_MS = 60 * 60 * 1000;
@@ -57,7 +58,6 @@ export function cleanFileName(name: string): string {
 @Injectable()
 export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AttachmentsService.name);
-  readonly dir: string;
   private sweepTimer?: NodeJS.Timeout;
 
   constructor(
@@ -65,10 +65,8 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
     private readonly taskAccess: TaskAccessService,
     private readonly activity: TaskActivityService,
     private readonly realtime: RealtimeEmitter,
-    config: ConfigService,
-  ) {
-    this.dir = resolve(config.getOrThrow<string>('UPLOAD_DIR'), 'attachments');
-  }
+    private readonly storage: FileStorage,
+  ) {}
 
   onModuleInit() {
     this.sweepTimer = setInterval(
@@ -109,8 +107,8 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
       .replace(/[^.a-z0-9]/g, '')
       .slice(0, 10);
     const storedName = `${randomUUID()}${ext}`;
-    await mkdir(this.dir, { recursive: true });
-    await writeFile(join(this.dir, storedName), file.buffer);
+    const mimeType = file.mimetype || 'application/octet-stream';
+    await this.storage.put(key(storedName), file.buffer, mimeType);
 
     const attachment = await this.prisma.attachment.create({
       data: {
@@ -118,7 +116,7 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
         uploadedById: userId,
         fileName,
         storedName,
-        mimeType: file.mimetype || 'application/octet-stream',
+        mimeType,
         size: file.size,
       },
       select,
@@ -146,9 +144,11 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
     await this.taskAccess.getAccess(attachment.taskId, userId).catch(() => {
       throw new NotFoundException('Anexo não encontrado');
     });
+    const stored = await this.storage.get(key(attachment.storedName));
+    if (!stored) throw new NotFoundException('Arquivo não encontrado');
     return {
       ...attachment,
-      path: join(this.dir, attachment.storedName),
+      ...stored,
       inline: INLINE_TYPES.includes(attachment.mimeType),
     };
   }
@@ -176,7 +176,9 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
     }
 
     await this.prisma.attachment.delete({ where: { id } });
-    await unlink(join(this.dir, attachment.storedName)).catch(() => undefined);
+    await this.storage
+      .delete(key(attachment.storedName))
+      .catch(() => undefined);
     await this.activity.record(attachment.taskId, userId, [
       {
         type: ActivityType.AttachmentRemoved,
@@ -193,30 +195,35 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
 
   // apagar quadro/projeto/organização remove os registros em cascata;
   // os arquivos que ficaram sem registro saem aqui
-  async sweepOrphans(): Promise<number> {
-    let files: string[];
+  async sweepOrphans(now = Date.now()): Promise<number> {
+    const old: string[] = [];
     try {
-      files = await readdir(this.dir);
-    } catch {
+      for await (const entry of this.storage.list(PREFIX)) {
+        if (now - entry.modifiedAt.getTime() >= ORPHAN_MIN_AGE_MS) {
+          old.push(entry.key.slice(PREFIX.length + 1));
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`Limpeza de anexos adiada: ${(e as Error).message}`);
       return 0;
     }
-    if (!files.length) return 0;
-    const known = new Set(
-      (
-        await this.prisma.attachment.findMany({
-          where: { storedName: { in: files } },
-          select: { storedName: true },
-        })
-      ).map((a) => a.storedName),
-    );
     let removed = 0;
-    for (const name of files) {
-      if (known.has(name)) continue;
-      const path = join(this.dir, name);
-      const info = await stat(path).catch(() => null);
-      if (!info || Date.now() - info.mtimeMs < ORPHAN_MIN_AGE_MS) continue;
-      await unlink(path).catch(() => undefined);
-      removed++;
+    // em lotes, para não montar um IN gigante
+    for (let i = 0; i < old.length; i += 500) {
+      const batch = old.slice(i, i + 500);
+      const known = new Set(
+        (
+          await this.prisma.attachment.findMany({
+            where: { storedName: { in: batch } },
+            select: { storedName: true },
+          })
+        ).map((a) => a.storedName),
+      );
+      for (const name of batch) {
+        if (known.has(name)) continue;
+        await this.storage.delete(key(name)).catch(() => undefined);
+        removed++;
+      }
     }
     if (removed) this.logger.log(`${removed} anexo(s) órfão(s) removido(s)`);
     return removed;

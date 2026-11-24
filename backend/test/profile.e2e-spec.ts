@@ -1,7 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { AvatarStorage } from '../src/users/avatar-storage';
+import { FileStorage } from '../src/storage/file-storage';
 import {
   apiAs,
   cleanup,
@@ -21,11 +19,16 @@ describe('Perfil (e2e)', () => {
   let app: INestApplication;
   let user: TestUser;
   let colleague: TestUser;
-  let dir: string;
+  let storage: FileStorage;
+  const exists = async (url: string) => {
+    const file = await storage.get(`avatars/${url.split('/').pop()}`);
+    file?.body.destroy();
+    return !!file;
+  };
 
   beforeAll(async () => {
     app = await createTestApp();
-    dir = app.get(AvatarStorage).dir;
+    storage = app.get(FileStorage);
     user = await registerUser(app, 'Nome Antigo');
     colleague = await registerUser(app, 'Colega');
     await createOrg(app, colleague, [user]);
@@ -78,16 +81,14 @@ describe('Perfil (e2e)', () => {
       .attach('file', PNG, { filename: 'outra.png', contentType: 'image/png' })
       .expect(200);
     expect(second.body.avatarUrl).not.toBe(url);
-    // a foto anterior é apagada do disco
-    expect(existsSync(join(dir, url.split('/').pop()!))).toBe(false);
+    // a foto anterior é apagada
+    expect(await exists(url)).toBe(false);
 
     const removed = await apiAs(app, user)
       .delete('/users/me/avatar')
       .expect(200);
     expect(removed.body.avatarUrl).toBeNull();
-    expect(existsSync(join(dir, second.body.avatarUrl.split('/').pop()!))).toBe(
-      false,
-    );
+    expect(await exists(second.body.avatarUrl)).toBe(false);
   });
 
   it('recusa o que não é imagem, mesmo com nome e tipo de imagem', async () => {

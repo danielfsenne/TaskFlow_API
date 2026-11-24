@@ -27,6 +27,7 @@ import {
   AttachmentsService,
 } from './attachments.service';
 import { UuidPipe } from '../common/validation';
+import { sendStored } from '../storage/send-stored';
 
 @ApiTags('attachments')
 @ApiBearerAuth()
@@ -84,13 +85,7 @@ export class AttachmentsController {
       'Content-Disposition',
       `${file.inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
     );
-    res.sendFile(file.path, (err) => {
-      if (err && !res.headersSent) {
-        res
-          .status(404)
-          .json({ statusCode: 404, message: 'Arquivo não encontrado' });
-      }
-    });
+    sendStored(res, file);
   }
 
   @Delete('attachments/:id')

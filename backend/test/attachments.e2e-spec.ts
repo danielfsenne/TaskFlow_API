@@ -1,9 +1,7 @@
 import { INestApplication } from '@nestjs/common';
-import { existsSync } from 'fs';
-import { utimes, writeFile } from 'fs/promises';
-import { join } from 'path';
 import { AttachmentsService } from '../src/attachments/attachments.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { FileStorage } from '../src/storage/file-storage';
 import {
   apiAs,
   cleanup,
@@ -21,6 +19,12 @@ const PNG = Buffer.from(
 describe('Anexos (e2e)', () => {
   let app: INestApplication;
   let service: AttachmentsService;
+  let storage: FileStorage;
+  const exists = async (key: string) => {
+    const file = await storage.get(key);
+    file?.body.destroy();
+    return !!file;
+  };
   let owner: TestUser;
   let member: TestUser;
   let other: TestUser;
@@ -39,6 +43,7 @@ describe('Anexos (e2e)', () => {
   beforeAll(async () => {
     app = await createTestApp();
     service = app.get(AttachmentsService);
+    storage = app.get(FileStorage);
     [owner, member, other, outsider] = await Promise.all([
       registerUser(app, 'Dona'),
       registerUser(app, 'Membro'),
@@ -154,7 +159,7 @@ describe('Anexos (e2e)', () => {
       .get(PrismaService)
       .attachment.findUniqueOrThrow({ where: { id: pdfId } });
     await apiAs(app, member).delete(`/attachments/${pdfId}`).expect(204);
-    expect(existsSync(join(service.dir, stored.storedName))).toBe(false);
+    expect(await exists(`attachments/${stored.storedName}`)).toBe(false);
     // a dona do projeto modera
     await apiAs(app, owner).delete(`/attachments/${imageId}`).expect(204);
 
@@ -179,15 +184,21 @@ describe('Anexos (e2e)', () => {
   });
 
   it('limpeza remove arquivos sem registro, mas não os recentes', async () => {
-    const old = join(service.dir, 'orfao-antigo.bin');
-    const fresh = join(service.dir, 'orfao-novo.bin');
-    await writeFile(old, 'x');
-    await writeFile(fresh, 'x');
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-    await utimes(old, twoHoursAgo, twoHoursAgo);
+    const kept = await apiAs(app, member)
+      .post(`/tasks/${taskId}/attachments`)
+      .attach('file', Buffer.from('fica'), 'fica.txt')
+      .expect(201);
+    const { storedName } = await app
+      .get(PrismaService)
+      .attachment.findUniqueOrThrow({ where: { id: kept.body.id } });
+    await storage.put('attachments/orfao.bin', Buffer.from('x'), 'text/plain');
 
     await service.sweepOrphans();
-    expect(existsSync(old)).toBe(false);
-    expect(existsSync(fresh)).toBe(true);
+    expect(await exists('attachments/orfao.bin')).toBe(true);
+
+    const inTwoHours = Date.now() + 2 * 60 * 60 * 1000;
+    expect(await service.sweepOrphans(inTwoHours)).toBeGreaterThanOrEqual(1);
+    expect(await exists('attachments/orfao.bin')).toBe(false);
+    expect(await exists(`attachments/${storedName}`)).toBe(true);
   });
 });

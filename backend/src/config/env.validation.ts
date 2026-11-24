@@ -2,12 +2,14 @@ import { plainToInstance, Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   Min,
   MinLength,
+  ValidateIf,
   validateSync,
 } from 'class-validator';
 
@@ -89,8 +91,40 @@ class EnvironmentVariables {
   @IsString()
   MAIL_FROM: string = 'TaskFlow <nao-responda@taskflow.local>';
 
+  // fotos e anexos: "local" (pasta UPLOAD_DIR) ou "s3" (S3 ou compatível)
+  @IsIn(['local', 's3'])
+  STORAGE_DRIVER: 'local' | 's3' = 'local';
+
   @IsString()
   UPLOAD_DIR: string = 'uploads';
+
+  @ValidateIf((o) => o.STORAGE_DRIVER === 's3')
+  @IsString()
+  @MinLength(3)
+  S3_BUCKET?: string;
+
+  @IsString()
+  S3_REGION: string = 'us-east-1';
+
+  // só para S3 compatível (ex.: http://localhost:9000 no MinIO)
+  @IsString()
+  @IsOptional()
+  S3_ENDPOINT?: string;
+
+  @IsString()
+  @IsOptional()
+  S3_ACCESS_KEY_ID?: string;
+
+  @IsString()
+  @IsOptional()
+  S3_SECRET_ACCESS_KEY?: string;
+
+  @Transform(
+    ({ obj }) =>
+      obj.S3_FORCE_PATH_STYLE === 'true' || obj.S3_FORCE_PATH_STYLE === true,
+  )
+  @IsBoolean()
+  S3_FORCE_PATH_STYLE: boolean = false;
 
   @IsString()
   QUEUE_PREFIX: string = 'bull';
