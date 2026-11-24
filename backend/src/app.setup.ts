@@ -5,7 +5,8 @@ import { ConfiguredIoAdapter } from './realtime/socket-io.adapter';
 
 // usado pelo main.ts e pelos testes e2e, para os dois rodarem igual
 export function configureApp(app: INestApplication) {
-  const corsOrigin = app.get(ConfigService).get<string>('CORS_ORIGIN');
+  const config = app.get(ConfigService);
+  const corsOrigin = config.get<string>('CORS_ORIGIN');
 
   app.setGlobalPrefix('api/v1');
   app.use(
@@ -24,5 +25,12 @@ export function configureApp(app: INestApplication) {
       transform: true,
     }),
   );
-  app.useWebSocketAdapter(new ConfiguredIoAdapter(app, corsOrigin));
+  app.useWebSocketAdapter(
+    new ConfiguredIoAdapter(app, corsOrigin, {
+      host: config.get<string>('REDIS_HOST'),
+      port: config.get<number>('REDIS_PORT'),
+      password: config.get<string>('REDIS_PASSWORD') || undefined,
+      key: `${config.get<string>('QUEUE_PREFIX')}:socket.io`,
+    }),
+  );
 }
