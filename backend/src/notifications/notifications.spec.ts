@@ -7,12 +7,23 @@ import { NotificationsProducer } from './notifications.producer';
 
 describe('NotificationsProducer', () => {
   const queue = { add: jest.fn() };
+  const pending = {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    delete: jest.fn(),
+  };
   let producer: NotificationsProducer;
+  const flush = () => new Promise((r) => setImmediate(r));
 
   beforeEach(() => {
     jest.clearAllMocks();
     queue.add.mockResolvedValue({});
-    producer = new NotificationsProducer(queue as unknown as Queue);
+    pending.create.mockResolvedValue({});
+    pending.delete.mockResolvedValue({});
+    producer = new NotificationsProducer(
+      queue as unknown as Queue,
+      { pendingNotification: pending } as unknown as PrismaService,
+    );
   });
 
   it('remove o autor da ação e duplicados', () => {
@@ -34,12 +45,56 @@ describe('NotificationsProducer', () => {
     expect(queue.add).not.toHaveBeenCalled();
   });
 
-  it('falha no Redis não propaga para quem chamou', async () => {
+  it('falha no Redis não propaga e guarda a notificação no banco', async () => {
     queue.add.mockRejectedValue(new Error('ECONNREFUSED'));
     expect(() =>
-      producer.notify(NotificationType.MemberAdded, 'eu', ['a'], {}),
+      producer.notify(NotificationType.MemberAdded, 'eu', ['a'], { x: 1 }),
     ).not.toThrow();
-    await new Promise((r) => setImmediate(r));
+    await flush();
+    await flush();
+    const jobId = queue.add.mock.calls[0][2].jobId;
+    expect(pending.create).toHaveBeenCalledWith({
+      data: {
+        id: jobId,
+        type: NotificationType.MemberAdded,
+        actorId: 'eu',
+        recipientIds: ['a'],
+        data: { x: 1 },
+      },
+    });
+  });
+
+  it('Redis que não responde também cai no banco', async () => {
+    jest.useFakeTimers();
+    try {
+      queue.add.mockReturnValue(new Promise(() => undefined));
+      producer.notify(NotificationType.MemberAdded, 'eu', ['a'], {});
+      await jest.advanceTimersByTimeAsync(3000);
+      expect(pending.create).toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('reenvia as guardadas com o mesmo jobId e para no primeiro erro', async () => {
+    const row = (id: string) => ({
+      id,
+      type: NotificationType.TaskAssigned,
+      actorId: null,
+      recipientIds: ['a'],
+      data: {},
+      createdAt: new Date(),
+    });
+    pending.findMany.mockResolvedValue([row('p1'), row('p2'), row('p3')]);
+    queue.add
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error('ECONNREFUSED'));
+
+    await expect(producer.flushPending()).resolves.toBe(1);
+    expect(queue.add).toHaveBeenCalledTimes(2);
+    expect(queue.add.mock.calls[0][2].jobId).toBe('p1');
+    expect(pending.delete).toHaveBeenCalledTimes(1);
+    expect(pending.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
   });
 });
 

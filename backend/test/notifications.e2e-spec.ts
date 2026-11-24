@@ -1,4 +1,7 @@
 import { INestApplication } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { NotificationsProducer } from '../src/notifications/notifications.producer';
+import { PrismaService } from '../src/prisma/prisma.service';
 import {
   apiAs,
   cleanup,
@@ -157,5 +160,31 @@ describe('Notifications (e2e)', () => {
     await apiAs(app, member).delete(`/notifications/${id}`).expect(204);
     await apiAs(app, member).patch(`/notifications/${id}/read`).expect(404);
     await apiAs(app).get('/notifications').expect(401);
+  });
+
+  it('reenvia notificações guardadas enquanto o Redis estava fora', async () => {
+    const before = (await list(other)).items.length;
+    const id = randomUUID();
+    await app.get(PrismaService).pendingNotification.create({
+      data: {
+        id,
+        type: 'MEMBER_ADDED',
+        actorId: owner.id,
+        recipientIds: [other.id],
+        data: { organizationName: 'Guardada' },
+      },
+    });
+
+    expect(await app.get(NotificationsProducer).flushPending()).toBeGreaterThan(
+      0,
+    );
+    const r = await waitCount(other, before + 1);
+    expect(r.items[0].payload).toMatchObject({
+      organizationName: 'Guardada',
+      actor: { name: 'Dono' },
+    });
+    expect(
+      await app.get(PrismaService).pendingNotification.count({ where: { id } }),
+    ).toBe(0);
   });
 });

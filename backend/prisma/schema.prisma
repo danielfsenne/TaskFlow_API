@@ -297,3 +297,16 @@ model Notification {
   @@index([userId, readAt])
   @@map("notifications")
 }
+
+// notificações que não entraram na fila (Redis fora do ar); reenviadas depois
+model PendingNotification {
+  id           String   @id
+  type         String
+  actorId      String?  @map("actor_id")
+  recipientIds String[] @map("recipient_ids")
+  data         Json
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("pending_notifications")
+}
