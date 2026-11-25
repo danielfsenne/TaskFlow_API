@@ -29,7 +29,9 @@ export class ConfiguredIoAdapter extends IoAdapter {
     });
     if (this.redis) {
       const { key, ...opts } = this.redis;
-      const pub = new Redis(opts);
+      // sem limite de tentativas: comandos esperam o Redis voltar em vez de
+      // falhar sem tratamento dentro do adaptador (o que derrubaria a API)
+      const pub = new Redis({ ...opts, maxRetriesPerRequest: null });
       const sub = pub.duplicate();
       for (const c of [pub, sub]) {
         c.on('error', (e) => this.logger.warn(`Redis: ${e.message}`));
