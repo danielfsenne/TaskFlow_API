@@ -16,6 +16,10 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { StorageModule } from './storage/storage.module';
+import {
+  RateLimitStorageModule,
+  RedisThrottlerStorage,
+} from './common/redis-throttler.storage';
 import { ProjectsModule } from './projects/projects.module';
 import { RealtimeCoreModule } from './realtime/realtime-core.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -40,8 +44,10 @@ import { UsersModule } from './users/users.module';
       }),
     }),
     ThrottlerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      imports: [RateLimitStorageModule],
+      inject: [ConfigService, RedisThrottlerStorage],
+      useFactory: (config: ConfigService, storage: RedisThrottlerStorage) => ({
+        storage,
         errorMessage: 'Muitas tentativas. Aguarde um minuto e tente de novo.',
         throttlers: [
           // teto geral por IP, só contra abuso

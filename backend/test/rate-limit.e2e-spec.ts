@@ -53,4 +53,27 @@ describe('Limite de tentativas (e2e)', () => {
     }
     await apiAs(app, user).get('/users/me').expect(200);
   });
+
+  it('o limite vale para todas as instâncias da API juntas', async () => {
+    const other = await createTestApp();
+    try {
+      // o login já ficou bloqueado no primeiro teste; aqui vai outra rota
+      const attempt = (target: INestApplication) =>
+        apiAs(target)
+          .post('/auth/reset-password')
+          .send({ token: 'a'.repeat(64), password: 'SenhaForte123' });
+      const notBlocked = (r: { status: number }) =>
+        expect(r.status).not.toBe(429);
+
+      // o limite é 3 por minuto: 2 numa instância e 1 na outra
+      await attempt(app).expect(notBlocked);
+      await attempt(other).expect(notBlocked);
+      await attempt(app).expect(notBlocked);
+      // o bloqueio de uma instância vale na outra
+      await attempt(other).expect(429);
+      await attempt(app).expect(429);
+    } finally {
+      await other.close();
+    }
+  });
 });

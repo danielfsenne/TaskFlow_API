@@ -88,7 +88,7 @@ API_URL=http://localhost:3100 npm start
 | `CORS_ORIGIN` | `http://localhost:4200` | Origem liberada para HTTP e WebSocket |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | troque | Assinatura dos tokens |
 | `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | `15m` / `7d` | Validade dos tokens |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | `localhost` / `6379` / vazio | Fila de notificações (BullMQ) e tempo real entre instâncias da API |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | `localhost` / `6379` / vazio | Fila de notificações (BullMQ), tempo real e limite de tentativas compartilhados entre instâncias da API |
 | `THROTTLE_AUTH_LIMIT` | `10` | Tentativas por minuto, por IP, em login, cadastro e recuperação de senha |
 | `TRUST_PROXY` | `false` | `true` atrás de nginx ou load balancer, para o limite usar o IP real |
 | `APP_URL` | `http://localhost:4200` | Endereço do frontend usado no link de redefinição de senha |
@@ -119,7 +119,7 @@ API_URL=http://localhost:3100 npm start
 - Fotos de perfil e anexos ficam em `backend/uploads/` ou num bucket S3 (`STORAGE_DRIVER=s3`) e passam sempre pela API. Anexos exigem login e, fora imagens comuns, sempre baixam (nunca abrem no navegador).
 - Tema claro, escuro ou igual ao sistema, no menu do usuário (a escolha fica salva no navegador).
 - O quadro é sincronizado ao vivo via Socket.IO entre todos que estão com ele aberto; as notificações chegam pelo sino sem recarregar a página.
-- Dá para rodar várias instâncias da API atrás de um balanceador: o tempo real passa pelo Redis e os arquivos vão para o S3. Os erros de validação da API vêm em português.
+- Dá para rodar várias instâncias da API atrás de um balanceador: o tempo real e o limite de tentativas passam pelo Redis e os arquivos vão para o S3. Se o Redis cair, a API continua no ar e cada instância conta as tentativas na própria memória até ele voltar. Os erros de validação da API vêm em português.
 
 ## Testes
 

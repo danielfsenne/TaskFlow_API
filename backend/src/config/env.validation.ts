@@ -70,6 +70,11 @@ class EnvironmentVariables {
   @Min(1)
   THROTTLE_AUTH_LIMIT: number = 10;
 
+  // padrão: "<QUEUE_PREFIX>:throttle:"; os testes usam um por arquivo
+  @IsString()
+  @IsOptional()
+  THROTTLE_KEY_PREFIX?: string;
+
   // endereço do frontend, usado nos links enviados por e-mail
   @IsString()
   APP_URL: string = 'http://localhost:4200';
