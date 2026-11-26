@@ -132,6 +132,7 @@ model Project {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdBy    User         @relation("ProjectCreator", fields: [createdById], references: [id])
   boards       Board[]
+  labels       Label[]
 
   @@index([organizationId])
   @@map("projects")
@@ -147,7 +148,6 @@ model Board {
   project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   columns BoardColumn[]
   tasks   Task[]
-  labels  Label[]
 
   @@index([projectId])
   @@map("boards")
@@ -212,17 +212,18 @@ model TaskAssignee {
   @@map("task_assignees")
 }
 
+// compartilhada por todos os quadros do projeto
 model Label {
   id        String   @id @default(uuid())
-  boardId   String   @map("board_id")
+  projectId String   @map("project_id")
   name      String
   color     String
   createdAt DateTime @default(now()) @map("created_at")
 
-  board Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  tasks TaskLabel[]
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   TaskLabel[]
 
-  @@unique([boardId, name])
+  @@unique([projectId, name])
   @@map("labels")
 }
 

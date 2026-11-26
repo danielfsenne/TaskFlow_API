@@ -6,12 +6,13 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { RealtimeEvent } from '../realtime/realtime-events';
+import { ProjectAccessService } from '../projects/project-access.service';
+import { RealtimeEvent, RealtimeEventName } from '../realtime/realtime-events';
 import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { BoardAccessService } from './board-access.service';
 import { CreateLabelDto, UpdateLabelDto } from './dto/label.dto';
 
-export const MAX_LABELS_PER_BOARD = 30;
+export const MAX_LABELS_PER_PROJECT = 50;
 export const labelSelect = { id: true, name: true, color: true } as const;
 
 @Injectable()
@@ -19,40 +20,43 @@ export class LabelsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: BoardAccessService,
+    private readonly projectAccess: ProjectAccessService,
     private readonly realtime: RealtimeEmitter,
   ) {}
 
+  // as rotas continuam pelo quadro; a etiqueta vale para o projeto inteiro
   async list(boardId: string, userId: string) {
-    await this.access.getBoardAccess(boardId, userId);
+    const { board } = await this.access.getBoardAccess(boardId, userId);
     return this.prisma.label.findMany({
-      where: { boardId },
+      where: { projectId: board.projectId },
       select: labelSelect,
       orderBy: { name: 'asc' },
     });
   }
 
   async create(boardId: string, userId: string, dto: CreateLabelDto) {
-    await this.access.getWritableBoard(boardId, userId);
-    const count = await this.prisma.label.count({ where: { boardId } });
-    if (count >= MAX_LABELS_PER_BOARD) {
+    const { board } = await this.access.getWritableBoard(boardId, userId);
+    const { projectId } = board;
+    const count = await this.prisma.label.count({ where: { projectId } });
+    if (count >= MAX_LABELS_PER_PROJECT) {
       throw new BadRequestException(
-        `Um quadro pode ter no máximo ${MAX_LABELS_PER_BOARD} etiquetas`,
+        `Um projeto pode ter no máximo ${MAX_LABELS_PER_PROJECT} etiquetas`,
       );
     }
     const label = await this.unique(() =>
       this.prisma.label.create({
-        data: { boardId, ...dto },
+        data: { projectId, ...dto },
         select: labelSelect,
       }),
     );
-    this.realtime.toBoard(boardId, RealtimeEvent.LabelCreated, userId, {
+    await this.toBoards(projectId, RealtimeEvent.LabelCreated, userId, {
       label,
     });
     return label;
   }
 
   async update(id: string, userId: string, dto: UpdateLabelDto) {
-    const { boardId } = await this.writable(id, userId);
+    const { projectId } = await this.writable(id, userId);
     const label = await this.unique(() =>
       this.prisma.label.update({
         where: { id },
@@ -60,7 +64,7 @@ export class LabelsService {
         select: labelSelect,
       }),
     );
-    this.realtime.toBoard(boardId, RealtimeEvent.LabelUpdated, userId, {
+    await this.toBoards(projectId, RealtimeEvent.LabelUpdated, userId, {
       label,
     });
     return label;
@@ -68,21 +72,39 @@ export class LabelsService {
 
   // sai também de todas as tarefas (cascade em task_labels)
   async remove(id: string, userId: string) {
-    const { boardId } = await this.writable(id, userId);
+    const { projectId } = await this.writable(id, userId);
     await this.prisma.label.delete({ where: { id } });
-    this.realtime.toBoard(boardId, RealtimeEvent.LabelDeleted, userId, {
+    await this.toBoards(projectId, RealtimeEvent.LabelDeleted, userId, {
       labelId: id,
     });
+  }
+
+  private async toBoards(
+    projectId: string,
+    event: RealtimeEventName,
+    actorId: string,
+    data: Record<string, unknown>,
+  ) {
+    const boards = await this.prisma.board.findMany({
+      where: { projectId },
+      select: { id: true },
+    });
+    for (const { id } of boards) {
+      this.realtime.toBoard(id, event, actorId, data);
+    }
   }
 
   private async writable(id: string, userId: string) {
     const label = await this.prisma.label.findUnique({ where: { id } });
     if (!label) throw new NotFoundException('Etiqueta não encontrada');
-    await this.access.getWritableBoard(label.boardId, userId).catch((e) => {
-      throw e instanceof NotFoundException
-        ? new NotFoundException('Etiqueta não encontrada')
-        : e;
-    });
+    const { project } = await this.projectAccess
+      .getAccess(label.projectId, userId)
+      .catch((e) => {
+        throw e instanceof NotFoundException
+          ? new NotFoundException('Etiqueta não encontrada')
+          : e;
+      });
+    this.projectAccess.assertNotArchived(project);
     return label;
   }
 

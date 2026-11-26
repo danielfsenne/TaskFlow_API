@@ -273,7 +273,7 @@ describe('Realtime (e2e)', () => {
     expect((await waitEvent(sOwner, 'board.deleted')).boardId).toBe(boardId);
   });
 
-  it('arquivar ou excluir o projeto avisa os quadros abertos', async () => {
+  it('etiquetas, arquivamento e exclusão do projeto chegam aos quadros abertos', async () => {
     const board = await apiAs(app, owner)
       .post(`/projects/${projectId}/boards`)
       .send({ name: 'Outro' })
@@ -281,6 +281,25 @@ describe('Realtime (e2e)', () => {
     expect(
       (await ack(sOwner, 'board:join', { boardId: board.body.id })).ok,
     ).toBe(true);
+
+    // etiqueta é do projeto: criada pelo outro quadro, chega neste também
+    const sibling = await apiAs(app, owner)
+      .post(`/projects/${projectId}/boards`)
+      .send({ name: 'Irmão' })
+      .expect(201);
+    const label = await apiAs(app, owner)
+      .post(`/boards/${sibling.body.id}/labels`)
+      .send({ name: 'compartilhada', color: 'green' })
+      .expect(201);
+    expect(
+      (
+        await waitEvent(
+          sOwner,
+          'label.created',
+          (p) => p.label.id === label.body.id,
+        )
+      ).label.name,
+    ).toBe('compartilhada');
 
     await apiAs(app, owner)
       .patch(`/projects/${projectId}`)

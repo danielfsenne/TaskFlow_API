@@ -323,7 +323,10 @@ export class TasksService {
   async setLabels(id: string, userId: string, labelIds: string[]) {
     const { task } = await this.taskAccess.getWritable(id, userId);
     const count = await this.prisma.label.count({
-      where: { id: { in: labelIds }, boardId: task.boardId },
+      where: {
+        id: { in: labelIds },
+        project: { boards: { some: { id: task.boardId } } },
+      },
     });
     if (count !== labelIds.length) {
       throw new BadRequestException('Etiqueta não pertence a este quadro');

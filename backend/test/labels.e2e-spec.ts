@@ -15,6 +15,7 @@ describe('Etiquetas (e2e)', () => {
   let projectId: string;
   let boardId: string;
   let otherBoardId: string;
+  let otherProjectBoardId: string;
   let bug: { id: string };
   let design: { id: string };
   let taskId: string;
@@ -43,6 +44,16 @@ describe('Etiquetas (e2e)', () => {
         .send({ name: 'Outro' })
         .expect(201)
     ).body.id;
+    const otherProject = await apiAs(app, member)
+      .post(`/organizations/${org.id}/projects`)
+      .send({ name: 'Outro projeto' })
+      .expect(201);
+    otherProjectBoardId = (
+      await apiAs(app, member)
+        .post(`/projects/${otherProject.body.id}/boards`)
+        .send({ name: 'Quadro' })
+        .expect(201)
+    ).body.id;
     taskId = (
       await apiAs(app, member)
         .post(`/boards/${boardId}/tasks`)
@@ -56,7 +67,7 @@ describe('Etiquetas (e2e)', () => {
     await app.close();
   });
 
-  it('cria etiquetas com cor da paleta e nome único no quadro', async () => {
+  it('cria etiquetas com cor da paleta e nome único no projeto', async () => {
     const api = apiAs(app, member);
     bug = (
       await api
@@ -80,17 +91,24 @@ describe('Etiquetas (e2e)', () => {
       .post(`/boards/${boardId}/labels`)
       .send({ name: 'x', color: '#ff0000' })
       .expect(400);
-    // o mesmo nome pode existir em outro quadro
+    // os quadros do projeto compartilham as etiquetas
     await api
       .post(`/boards/${otherBoardId}/labels`)
       .send({ name: 'bug', color: 'red' })
+      .expect(409);
+    // outro projeto tem as suas
+    await api
+      .post(`/boards/${otherProjectBoardId}/labels`)
+      .send({ name: 'bug', color: 'red' })
       .expect(201);
 
-    const board = await api.get(`/boards/${boardId}`).expect(200);
-    expect(board.body.labels.map((l: { name: string }) => l.name)).toEqual([
-      'bug',
-      'design',
-    ]);
+    for (const id of [boardId, otherBoardId]) {
+      const board = await api.get(`/boards/${id}`).expect(200);
+      expect(board.body.labels.map((l: { name: string }) => l.name)).toEqual([
+        'bug',
+        'design',
+      ]);
+    }
   });
 
   it('aplica etiquetas na tarefa e filtra por elas', async () => {
@@ -116,9 +134,18 @@ describe('Etiquetas (e2e)', () => {
     ]);
   });
 
-  it('recusa etiqueta de outro quadro', async () => {
+  it('vale em qualquer quadro do projeto, mas não em outro projeto', async () => {
+    const otherTask = await apiAs(app, member)
+      .post(`/boards/${otherBoardId}/tasks`)
+      .send({ title: 'No outro quadro' })
+      .expect(201);
+    await apiAs(app, member)
+      .put(`/tasks/${otherTask.body.id}/labels`)
+      .send({ labelIds: [bug.id] })
+      .expect(200);
+
     const other = await apiAs(app, member)
-      .get(`/boards/${otherBoardId}/labels`)
+      .get(`/boards/${otherProjectBoardId}/labels`)
       .expect(200);
     await apiAs(app, member)
       .put(`/tasks/${taskId}/labels`)

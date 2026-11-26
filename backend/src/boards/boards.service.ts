@@ -18,6 +18,21 @@ const columnsOrdered = {
   include: { _count: { select: { tasks: true } } },
 } satisfies Prisma.Board$columnsArgs;
 
+const boardInclude = {
+  columns: columnsOrdered,
+  project: {
+    select: { labels: { select: labelSelect, orderBy: { name: 'asc' } } },
+  },
+} satisfies Prisma.BoardInclude;
+
+// a resposta mantém "labels" no quadro, como antes
+function withLabels<T extends { project: { labels: unknown[] } }>({
+  project,
+  ...board
+}: T) {
+  return { ...board, labels: project.labels };
+}
+
 @Injectable()
 export class BoardsService {
   constructor(
@@ -34,7 +49,7 @@ export class BoardsService {
     const names = dto.columns ?? DEFAULT_COLUMNS;
     const positions = evenPositions(names.length);
 
-    return this.prisma.board.create({
+    const board = await this.prisma.board.create({
       data: {
         projectId,
         name: dto.name,
@@ -42,11 +57,9 @@ export class BoardsService {
           create: names.map((name, i) => ({ name, position: positions[i] })),
         },
       },
-      include: {
-        columns: columnsOrdered,
-        labels: { select: labelSelect, orderBy: { name: 'asc' } },
-      },
+      include: boardInclude,
     });
+    return withLabels(board);
   }
 
   async findAll(projectId: string, userId: string) {
@@ -60,13 +73,11 @@ export class BoardsService {
 
   async findOne(id: string, userId: string) {
     await this.access.getBoardAccess(id, userId);
-    return this.prisma.board.findUniqueOrThrow({
+    const board = await this.prisma.board.findUniqueOrThrow({
       where: { id },
-      include: {
-        columns: columnsOrdered,
-        labels: { select: labelSelect, orderBy: { name: 'asc' } },
-      },
+      include: boardInclude,
     });
+    return withLabels(board);
   }
 
   async update(id: string, userId: string, dto: UpdateBoardDto) {
