@@ -95,17 +95,20 @@ try {
     ),
   );
 
-  // baixar o PDF busca o arquivo com o login
+  // baixar o PDF: pela API (com o login) ou, com S3, direto do bucket
+  // por link temporário; nos dois casos o arquivo vem como download
   const download = page.waitForResponse(
-    (r) => r.url().includes('/file') && r.request().method() === 'GET',
+    (r) =>
+      r.request().method() === 'GET' &&
+      (r.url().includes('/file') || r.url().includes('X-Amz-Signature')),
   );
   await page.click('[data-attachment="briefing.pdf"] button.min-w-0');
   const res = await download;
   t.ok(
-    'download autenticado do arquivo',
+    'download protegido do arquivo',
     res.status() === 200 &&
       res.headers()['content-disposition']?.startsWith('attachment'),
-    res.status(),
+    `${res.status()} ${res.url().split('?')[0]}`,
   );
 
   // outra pessoa exclui pela API: some do painel e do card
