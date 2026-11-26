@@ -24,7 +24,10 @@ import { BoardStore } from './board.store';
     LabelChipComponent,
   ],
   template: `
-    <h2 mat-dialog-title>Etiquetas do quadro</h2>
+    <h2 mat-dialog-title>Etiquetas do projeto</h2>
+    <p class="-mt-2 px-6 text-xs text-slate-500">
+      Valem para todos os quadros deste projeto.
+    </p>
     <mat-dialog-content class="sm:min-w-[26rem]">
       <ul class="mb-4 flex flex-col gap-1" data-testid="labels-list">
         @for (l of store.labels(); track l.id) {
@@ -154,7 +157,7 @@ export class LabelsDialogComponent {
   async remove(label: Label) {
     const ok = await this.ui.confirm({
       title: `Excluir "${label.name}"?`,
-      message: 'A etiqueta sai de todas as tarefas do quadro.',
+      message: 'A etiqueta sai de todas as tarefas do projeto.',
       confirmLabel: 'Excluir',
       danger: true,
     });

@@ -114,6 +114,8 @@ API_URL=http://localhost:3100 npm start
 
 - Organizações têm papéis **Dono**, **Admin** e **Membro**. Projetos, quadros e tarefas herdam o acesso da organização; quem não é membro recebe 404.
 - Uma tarefa conta como **concluída** quando está na última coluna do quadro. É essa regra que alimenta os dashboards.
+- Etiquetas são do projeto: as mesmas valem em todos os quadros dele.
+- Os responsáveis recebem aviso quando a tarefa vence nas próximas 24 h e, se ela passar do prazo sem ser concluída, um aviso de atraso.
 - Projetos arquivados ficam somente leitura; quem está com um quadro do projeto aberto vê a mudança na hora.
 - Login, cadastro e recuperação de senha têm limite de tentativas por IP. Redefinir ou trocar a senha encerra as sessões abertas em outros aparelhos.
 - Fotos de perfil e anexos ficam em `backend/uploads/` ou num bucket S3 (`STORAGE_DRIVER=s3`) e passam sempre pela API. Anexos exigem login e, fora imagens comuns, sempre baixam (nunca abrem no navegador).
