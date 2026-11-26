@@ -131,6 +131,30 @@ describe('Anexos (e2e)', () => {
     expect(pdf.headers['x-content-type-options']).toBe('nosniff');
   });
 
+  it('link direto: null sem S3; com S3, baixa com os mesmos cabeçalhos', async () => {
+    const link = await apiAs(app, member)
+      .get(`/attachments/${pdfId}/link`)
+      .expect(200);
+    if (process.env.STORAGE_DRIVER !== 's3') {
+      expect(link.body).toEqual({ url: null, expiresAt: null });
+      return;
+    }
+    expect(new Date(link.body.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    // sem token: o link já carrega a autorização
+    const res = await fetch(link.body.url);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('application/octet-stream');
+    expect(res.headers.get('content-disposition')).toBe(
+      `attachment; filename*=UTF-8''${encodeURIComponent('relatório final.pdf')}`,
+    );
+    expect(await res.text()).toBe('%PDF-1.4 conteúdo');
+  });
+
+  it('link direto respeita o acesso', async () => {
+    await apiAs(app).get(`/attachments/${pdfId}/link`).expect(401);
+    await apiAs(app, outsider).get(`/attachments/${pdfId}/link`).expect(404);
+  });
+
   it('HTML enviado como imagem não é servido como página', async () => {
     const html = await apiAs(app, member)
       .post(`/tasks/${taskId}/attachments`)

@@ -23,6 +23,8 @@ export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PER_TASK = 20;
 const PREFIX = 'attachments';
 const key = (storedName: string) => `${PREFIX}/${storedName}`;
+// curto: quem perde o acesso perde também o link logo depois
+const LINK_TTL_SECONDS = 5 * 60;
 const SWEEP_EVERY_MS = 6 * 60 * 60 * 1000;
 // arquivo recém-gravado ainda pode estar esperando o registro no banco
 const ORPHAN_MIN_AGE_MS = 60 * 60 * 1000;
@@ -136,7 +138,24 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
     return attachment;
   }
 
-  async file(id: string, userId: string) {
+  async link(id: string, userId: string) {
+    const attachment = await this.findReadable(id, userId);
+    const inline = INLINE_TYPES.includes(attachment.mimeType);
+    const url = await this.storage.signedUrl(key(attachment.storedName), {
+      fileName: attachment.fileName,
+      contentType: inline ? attachment.mimeType : 'application/octet-stream',
+      inline,
+      expiresInSeconds: LINK_TTL_SECONDS,
+    });
+    return {
+      url,
+      expiresAt: url
+        ? new Date(Date.now() + LINK_TTL_SECONDS * 1000).toISOString()
+        : null,
+    };
+  }
+
+  private async findReadable(id: string, userId: string) {
     const attachment = await this.prisma.attachment.findUnique({
       where: { id },
     });
@@ -144,6 +163,11 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
     await this.taskAccess.getAccess(attachment.taskId, userId).catch(() => {
       throw new NotFoundException('Anexo não encontrado');
     });
+    return attachment;
+  }
+
+  async file(id: string, userId: string) {
+    const attachment = await this.findReadable(id, userId);
     const stored = await this.storage.get(key(attachment.storedName));
     if (!stored) throw new NotFoundException('Arquivo não encontrado');
     return {

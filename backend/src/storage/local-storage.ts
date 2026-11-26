@@ -47,4 +47,9 @@ export class LocalStorage extends FileStorage {
       }
     }
   }
+
+  // arquivo local só sai pela API
+  signedUrl() {
+    return Promise.resolve(null);
+  }
 }

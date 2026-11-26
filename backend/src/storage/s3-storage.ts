@@ -7,8 +7,15 @@ import {
   S3Client,
   S3ClientConfig,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
-import { FileStorage, StoredEntry, StoredFile } from './file-storage';
+import {
+  FileStorage,
+  SignedUrlOptions,
+  StoredEntry,
+  StoredFile,
+} from './file-storage';
+import { contentDisposition } from './content-disposition';
 
 // S3 ou compatível (MinIO, R2...): o bucket é compartilhado entre instâncias
 export class S3Storage extends FileStorage {
@@ -68,6 +75,24 @@ export class S3Storage extends FileStorage {
       }
       token = page.NextContinuationToken;
     } while (token);
+  }
+
+  signedUrl(key: string, opts: SignedUrlOptions) {
+    return getSignedUrl(
+      this.client,
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        // o bucket responde com os mesmos cabeçalhos que a API usaria
+        ResponseContentType: opts.contentType,
+        ResponseContentDisposition: contentDisposition(
+          opts.fileName,
+          opts.inline,
+        ),
+        ResponseCacheControl: 'private, max-age=300',
+      }),
+      { expiresIn: opts.expiresInSeconds },
+    );
   }
 
   onModuleDestroy() {

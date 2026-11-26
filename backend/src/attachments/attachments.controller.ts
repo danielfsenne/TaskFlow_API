@@ -27,6 +27,7 @@ import {
   AttachmentsService,
 } from './attachments.service';
 import { UuidPipe } from '../common/validation';
+import { contentDisposition } from '../storage/content-disposition';
 import { sendStored } from '../storage/send-stored';
 
 @ApiTags('attachments')
@@ -65,6 +66,15 @@ export class AttachmentsController {
     return this.attachments.upload(taskId, user.id, file);
   }
 
+  @Get('attachments/:id/link')
+  @ApiOperation({
+    summary:
+      'Link temporário direto para o arquivo (só com S3; senão url é null)',
+  })
+  link(@Param('id', UuidPipe) id: string, @CurrentUser() user: AuthUser) {
+    return this.attachments.link(id, user.id);
+  }
+
   @Get('attachments/:id/file')
   @ApiOperation({ summary: 'Conteúdo do anexo (imagens abrem, o resto baixa)' })
   async download(
@@ -83,7 +93,7 @@ export class AttachmentsController {
     );
     res.setHeader(
       'Content-Disposition',
-      `${file.inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+      contentDisposition(file.fileName, file.inline),
     );
     sendStored(res, file);
   }
