@@ -30,6 +30,11 @@ export function formatSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
 }
 
+// só as URLs de blob ocupam memória do navegador
+const revoke = (url: string) => {
+  if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+};
+
 const iconFor = (mime: string) =>
   mime.startsWith('image/')
     ? 'image'
@@ -141,7 +146,7 @@ export class TaskAttachmentsComponent implements OnInit {
   constructor() {
     // URLs de blob ocupam memória até serem liberadas
     inject(DestroyRef).onDestroy(() =>
-      Object.values(this.previews()).forEach((u) => URL.revokeObjectURL(u)),
+      Object.values(this.previews()).forEach(revoke),
     );
     this.realtime
       .on<{ taskId: string; attachment: Attachment }>('attachment.created')
@@ -206,14 +211,20 @@ export class TaskAttachmentsComponent implements OnInit {
 
   async open(a: Attachment) {
     try {
-      const blob = await this.api.attachmentBlob(a.id);
-      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      if (PREVIEWABLE.includes(a.mimeType)) link.target = '_blank';
-      else link.download = a.fileName;
+      const preview = PREVIEWABLE.includes(a.mimeType);
+      if (preview) link.target = '_blank';
+      const { url: direct } = await this.api.attachmentLink(a.id);
+      if (direct) {
+        // o bucket já manda "attachment" para o que não é imagem
+        link.href = direct;
+      } else {
+        const url = URL.createObjectURL(await this.api.attachmentBlob(a.id));
+        link.href = url;
+        if (!preview) link.download = a.fileName;
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
       link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
       this.ui.error(e);
     }
@@ -247,7 +258,7 @@ export class TaskAttachmentsComponent implements OnInit {
     this.attachments.update((list) => list.filter((x) => x.id !== id));
     const url = this.previews()[id];
     if (url) {
-      URL.revokeObjectURL(url);
+      revoke(url);
       this.previews.update(({ [id]: _, ...rest }) => rest);
     }
   }
@@ -255,7 +266,10 @@ export class TaskAttachmentsComponent implements OnInit {
   private async loadPreview(a: Attachment) {
     if (!PREVIEWABLE.includes(a.mimeType) || this.previews()[a.id]) return;
     try {
-      const url = URL.createObjectURL(await this.api.attachmentBlob(a.id));
+      // a miniatura carrega uma vez; o link de 5 min basta
+      const { url: direct } = await this.api.attachmentLink(a.id);
+      const url =
+        direct ?? URL.createObjectURL(await this.api.attachmentBlob(a.id));
       this.previews.update((p) => ({ ...p, [a.id]: url }));
     } catch {
       // sem miniatura: fica o ícone

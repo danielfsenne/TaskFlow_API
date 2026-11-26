@@ -171,6 +171,11 @@ export class ApiService {
     return this.post<Attachment>(`/tasks/${taskId}/attachments`, form);
   };
   deleteAttachment = (id: string) => this.delete(`/attachments/${id}`);
+  // com S3, link temporário direto do bucket; sem S3, url vem null
+  attachmentLink = (id: string) =>
+    this.get<{ url: string | null; expiresAt: string | null }>(
+      `/attachments/${id}/link`,
+    );
   // passa pelo interceptor (com token); <img>/<a> direto não levariam o login
   attachmentBlob = (id: string) =>
     this.run(
