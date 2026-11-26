@@ -144,7 +144,8 @@ export type NotificationType =
   | 'MEMBER_ADDED'
   | 'TASK_ASSIGNED'
   | 'TASK_COMMENTED'
-  | 'TASK_DUE_SOON';
+  | 'TASK_DUE_SOON'
+  | 'TASK_OVERDUE';
 
 export interface AppNotification {
   id: string;

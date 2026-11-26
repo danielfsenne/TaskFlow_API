@@ -10,7 +10,7 @@ import { NotificationsStore } from '../core/notifications.store';
 import { AvatarComponent } from '../shared/avatar.component';
 import { RelativeTimePipe } from '../shared/relative-time.pipe';
 
-// "hoje às 18:00", "amanhã às 09:30" ou "em 25/11 às 14:00"
+// "hoje às 18:00", "amanhã às 09:30", "ontem às 10:00" ou "em 25/11 às 14:00"
 export function dueLabel(iso: string | undefined, now = new Date()): string {
   if (!iso) return 'em breve';
   const due = new Date(iso);
@@ -23,6 +23,7 @@ export function dueLabel(iso: string | undefined, now = new Date()): string {
   const diff = Math.round((day(due) - day(now)) / 86_400_000);
   if (diff === 0) return `hoje às ${time}`;
   if (diff === 1) return `amanhã às ${time}`;
+  if (diff === -1) return `ontem às ${time}`;
   return `em ${due.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${time}`;
 }
 
@@ -49,6 +50,11 @@ export function describe(n: AppNotification): {
     case 'TASK_DUE_SOON':
       return {
         text: `"${n.payload.taskTitle}" vence ${dueLabel(n.payload.dueDate)}`,
+        detail: n.payload.projectName,
+      };
+    case 'TASK_OVERDUE':
+      return {
+        text: `"${n.payload.taskTitle}" está atrasada (venceu ${dueLabel(n.payload.dueDate)})`,
         detail: n.payload.projectName,
       };
     default:
@@ -122,10 +128,18 @@ export function describe(n: AppNotification): {
                   [size]="32"
                 />
               } @else {
+                @let overdue = n.type === 'TASK_OVERDUE';
                 <span
-                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-700"
+                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  [class]="
+                    overdue
+                      ? 'bg-red-50 text-red-700'
+                      : 'bg-amber-50 text-amber-700'
+                  "
                 >
-                  <mat-icon class="!text-lg">schedule</mat-icon>
+                  <mat-icon class="!text-lg">{{
+                    overdue ? 'event_busy' : 'schedule'
+                  }}</mat-icon>
                 </span>
               }
               <div class="min-w-0 flex-1">
