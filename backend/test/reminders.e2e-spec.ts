@@ -6,6 +6,7 @@ import {
   createOrg,
   createTestApp,
   eventually,
+  lastMailTo,
   registerUser,
   sleep,
   TestUser,
@@ -152,6 +153,16 @@ describe('Lembretes de prazo (e2e)', () => {
     const titles = (await overdueFor(member)).map((n) => n.payload.taskTitle);
     // "Já venceu" é do teste anterior
     expect(titles.sort()).toEqual(['Atrasada', 'Já venceu']);
+
+    // o atraso também chega por e-mail, com link para a tarefa
+    const mail = await eventually(
+      () => lastMailTo(member.email),
+      (m) => !!m?.Subject.startsWith('Tarefa atrasada'),
+      5000,
+    );
+    expect(mail?.Subject).toMatch(/^Tarefa atrasada: (Atrasada|Já venceu)$/);
+    expect(mail?.Text).toContain(`/boards/${boardId}?task=`);
+    expect(mail?.Text).toContain('do projeto Projeto');
 
     await reminders.sendOverdue();
     await sleep(800);

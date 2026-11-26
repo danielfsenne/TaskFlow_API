@@ -16,6 +16,7 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly transport: Transporter;
   private readonly from: string;
+  private readonly timeZone: string;
 
   constructor(config: ConfigService) {
     const user = config.get<string>('SMTP_USER');
@@ -28,6 +29,7 @@ export class MailService {
         : undefined,
     });
     this.from = config.getOrThrow<string>('MAIL_FROM');
+    this.timeZone = config.getOrThrow<string>('MAIL_TIMEZONE');
   }
 
   async sendPasswordReset(to: string, name: string, link: string) {
@@ -75,6 +77,35 @@ export class MailService {
 <p><strong>${escape(inviterName)}</strong> convidou você para participar da organização <strong>${escape(organizationName)}</strong> no TaskFlow.</p>
 <p><a href="${escape(link)}">Aceitar o convite</a> (o link vale por 7 dias).</p>
 <p style="color:#666">Se não esperava este convite, é só ignorar este e-mail.</p>`,
+    );
+  }
+
+  async sendOverdue(
+    to: string,
+    name: string,
+    task: { title: string; projectName: string; dueDate: Date; link: string },
+  ) {
+    const first = name.split(' ')[0];
+    const due = task.dueDate.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: this.timeZone,
+    });
+    await this.send(
+      to,
+      `Tarefa atrasada: ${task.title}`,
+      [
+        `Olá, ${first}.`,
+        '',
+        `A tarefa "${task.title}", do projeto ${task.projectName}, venceu em ${due} e ainda não foi concluída.`,
+        '',
+        task.link,
+      ].join('\n'),
+      `<p>Olá, ${escape(first)}.</p>
+<p>A tarefa <strong>${escape(task.title)}</strong>, do projeto ${escape(task.projectName)}, venceu em ${due} e ainda não foi concluída.</p>
+<p><a href="${escape(task.link)}">Abrir a tarefa</a></p>`,
     );
   }
 

@@ -94,6 +94,7 @@ API_URL=http://localhost:3100 npm start
 | `APP_URL` | `http://localhost:4200` | Endereço do frontend usado no link de redefinição de senha |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Mailpit (`localhost` / `1025`) | Envio de e-mails |
 | `MAIL_FROM` | `TaskFlow <nao-responda@taskflow.local>` | Remetente dos e-mails |
+| `MAIL_TIMEZONE` | `America/Sao_Paulo` | Fuso dos horários escritos nos e-mails |
 | `STORAGE_DRIVER` | `local` | Onde ficam fotos e anexos: `local` (pasta) ou `s3` |
 | `UPLOAD_DIR` | `uploads` | Pasta das fotos e anexos quando o driver é `local` |
 | `S3_BUCKET` / `S3_REGION` | vazio / `us-east-1` | Bucket quando o driver é `s3` |
@@ -115,7 +116,7 @@ API_URL=http://localhost:3100 npm start
 - Organizações têm papéis **Dono**, **Admin** e **Membro**. Projetos, quadros e tarefas herdam o acesso da organização; quem não é membro recebe 404.
 - Uma tarefa conta como **concluída** quando está na última coluna do quadro. É essa regra que alimenta os dashboards.
 - Etiquetas são do projeto: as mesmas valem em todos os quadros dele.
-- Os responsáveis recebem aviso quando a tarefa vence nas próximas 24 h e, se ela passar do prazo sem ser concluída, um aviso de atraso.
+- Os responsáveis recebem aviso quando a tarefa vence nas próximas 24 h e, se ela passar do prazo sem ser concluída, um aviso de atraso (no sino e por e-mail).
 - Projetos arquivados ficam somente leitura; quem está com um quadro do projeto aberto vê a mudança na hora.
 - Login, cadastro e recuperação de senha têm limite de tentativas por IP. Redefinir ou trocar a senha encerra as sessões abertas em outros aparelhos.
 - Fotos de perfil e anexos ficam em `backend/uploads/` ou num bucket S3 (`STORAGE_DRIVER=s3`) e passam sempre pela API. Anexos exigem login e, fora imagens comuns, sempre baixam (nunca abrem no navegador).

@@ -96,6 +96,10 @@ class EnvironmentVariables {
   @IsString()
   MAIL_FROM: string = 'TaskFlow <nao-responda@taskflow.local>';
 
+  // fuso dos horários escritos nos e-mails
+  @IsString()
+  MAIL_TIMEZONE: string = 'America/Sao_Paulo';
+
   // fotos e anexos: "local" (pasta UPLOAD_DIR) ou "s3" (S3 ou compatível)
   @IsIn(['local', 's3'])
   STORAGE_DRIVER: 'local' | 's3' = 'local';

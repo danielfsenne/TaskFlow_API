@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { MailService } from '../mail/mail.service';
 import { NotificationType } from '../notifications/notification-types';
 import { NotificationsProducer } from '../notifications/notifications.producer';
 import { PrismaService } from '../prisma/prisma.service';
@@ -13,7 +15,9 @@ const taskSelect = {
   title: true,
   boardId: true,
   dueDate: true,
-  assignees: { select: { userId: true } },
+  assignees: {
+    select: { userId: true, user: { select: { name: true, email: true } } },
+  },
   board: {
     select: {
       project: { select: { id: true, name: true, organizationId: true } },
@@ -30,6 +34,8 @@ export class DueRemindersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsProducer,
+    private readonly mail: MailService,
+    private readonly config: ConfigService,
   ) {}
 
   // avisa os responsáveis das tarefas abertas que vencem nas próximas 24 h
@@ -87,9 +93,30 @@ export class DueRemindersService {
           dueDate: task.dueDate!.toISOString(),
         },
       );
+      // o atraso também vai por e-mail; o aviso de 24 h fica só no sino
+      if (type === NotificationType.TaskOverdue) await this.emailOverdue(task);
       sent++;
     }
     if (sent) this.logger.log(`${sent} aviso(s) ${type} enviados`);
     return sent;
+  }
+
+  private async emailOverdue(task: {
+    id: string;
+    title: string;
+    boardId: string;
+    dueDate: Date | null;
+    assignees: { user: { name: string; email: string } }[];
+    board: { project: { name: string } };
+  }) {
+    const link = `${this.config.get<string>('APP_URL')}/boards/${task.boardId}?task=${task.id}`;
+    for (const { user } of task.assignees) {
+      await this.mail.sendOverdue(user.email, user.name, {
+        title: task.title,
+        projectName: task.board.project.name,
+        dueDate: task.dueDate!,
+        link,
+      });
+    }
   }
 }

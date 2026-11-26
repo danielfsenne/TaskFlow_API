@@ -2,6 +2,7 @@ import { BullModule, InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger, Module, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
+import { MailModule } from '../mail/mail.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { DueRemindersService } from './due-reminders.service';
 
@@ -66,6 +67,7 @@ export class RemindersScheduler implements OnModuleInit {
   imports: [
     BullModule.registerQueue({ name: REMINDERS_QUEUE }),
     NotificationsModule,
+    MailModule,
   ],
   providers: [DueRemindersService, RemindersProcessor, RemindersScheduler],
 })
