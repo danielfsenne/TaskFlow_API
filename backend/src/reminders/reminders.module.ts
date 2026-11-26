@@ -14,8 +14,12 @@ export class RemindersProcessor extends WorkerHost {
     super();
   }
 
-  process() {
-    return this.reminders.sendDueSoon();
+  async process() {
+    const now = new Date();
+    return (
+      (await this.reminders.sendDueSoon(now)) +
+      (await this.reminders.sendOverdue(now))
+    );
   }
 }
 

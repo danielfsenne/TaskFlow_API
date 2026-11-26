@@ -179,6 +179,7 @@ model Task {
   dueDate           DateTime?    @map("due_date")
   completedAt       DateTime?    @map("completed_at")
   dueReminderSentAt DateTime?    @map("due_reminder_sent_at")
+  overdueSentAt     DateTime?    @map("overdue_sent_at")
   createdById       String       @map("created_by_id")
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")

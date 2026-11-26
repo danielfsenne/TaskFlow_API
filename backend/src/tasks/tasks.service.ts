@@ -182,7 +182,9 @@ export class TasksService {
         where: { id },
         // prazo novo libera um novo lembrete
         data:
-          dto.dueDate !== undefined ? { ...dto, dueReminderSentAt: null } : dto,
+          dto.dueDate !== undefined
+            ? { ...dto, dueReminderSentAt: null, overdueSentAt: null }
+            : dto,
         include: taskInclude,
       }),
     );

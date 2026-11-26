@@ -28,11 +28,14 @@ describe('Lembretes de prazo (e2e)', () => {
   let doneColumn: string;
   let projectId: string;
 
-  const dueSoonFor = async (user: TestUser) =>
+  const notificationsFor = async (user: TestUser, type: string) =>
     (
       (await apiAs(app, user).get('/notifications').expect(200)).body
         .items as Notification[]
-    ).filter((n) => n.type === 'TASK_DUE_SOON');
+    ).filter((n) => n.type === type);
+  const dueSoonFor = (user: TestUser) =>
+    notificationsFor(user, 'TASK_DUE_SOON');
+  const overdueFor = (user: TestUser) => notificationsFor(user, 'TASK_OVERDUE');
 
   const task = (body: object) =>
     apiAs(app, owner)
@@ -120,6 +123,52 @@ describe('Lembretes de prazo (e2e)', () => {
         (n) => n.length === 2,
       ),
     ).toHaveLength(2);
+  });
+
+  it('avisa uma vez as tarefas atrasadas da última semana', async () => {
+    const late = await task({
+      title: 'Atrasada',
+      dueDate: inHours(-3),
+      assigneeIds: [member.id],
+    });
+    await task({
+      title: 'Esquecida',
+      dueDate: inHours(-24 * 10),
+      assigneeIds: [member.id],
+    });
+    await task({
+      title: 'Atrasada e concluída',
+      dueDate: inHours(-3),
+      columnId: doneColumn,
+      assigneeIds: [member.id],
+    });
+
+    await reminders.sendOverdue();
+    await eventually(
+      () => overdueFor(member),
+      (n) => n.length >= 2,
+      3000,
+    );
+    const titles = (await overdueFor(member)).map((n) => n.payload.taskTitle);
+    // "Já venceu" é do teste anterior
+    expect(titles.sort()).toEqual(['Atrasada', 'Já venceu']);
+
+    await reminders.sendOverdue();
+    await sleep(800);
+    expect(await overdueFor(member)).toHaveLength(2);
+
+    // novo prazo, novo atraso: avisa de novo
+    await apiAs(app, owner)
+      .patch(`/tasks/${late.id}`)
+      .send({ dueDate: inHours(-1) })
+      .expect(200);
+    await reminders.sendOverdue();
+    expect(
+      await eventually(
+        () => overdueFor(member),
+        (n) => n.length === 3,
+      ),
+    ).toHaveLength(3);
   });
 
   it('projeto arquivado não gera aviso', async () => {

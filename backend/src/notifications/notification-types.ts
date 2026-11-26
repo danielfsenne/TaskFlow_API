@@ -5,6 +5,7 @@ export enum NotificationType {
   TaskAssigned = 'TASK_ASSIGNED',
   TaskCommented = 'TASK_COMMENTED',
   TaskDueSoon = 'TASK_DUE_SOON',
+  TaskOverdue = 'TASK_OVERDUE',
 }
 
 export interface NotificationJob {

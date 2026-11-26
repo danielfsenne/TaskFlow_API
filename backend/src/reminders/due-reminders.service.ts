@@ -5,6 +5,23 @@ import { PrismaService } from '../prisma/prisma.service';
 import { taskEventData } from '../tasks/tasks.service';
 
 export const DUE_SOON_WINDOW_MS = 24 * 60 * 60 * 1000;
+// tarefa esquecida há mais tempo que isso não gera aviso de atraso
+export const OVERDUE_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const taskSelect = {
+  id: true,
+  title: true,
+  boardId: true,
+  dueDate: true,
+  assignees: { select: { userId: true } },
+  board: {
+    select: {
+      project: { select: { id: true, name: true, organizationId: true } },
+    },
+  },
+} as const;
+
+type Marker = 'dueReminderSentAt' | 'overdueSentAt';
 
 @Injectable()
 export class DueRemindersService {
@@ -16,29 +33,40 @@ export class DueRemindersService {
   ) {}
 
   // avisa os responsáveis das tarefas abertas que vencem nas próximas 24 h
-  async sendDueSoon(now = new Date()): Promise<number> {
+  sendDueSoon(now = new Date()): Promise<number> {
+    return this.send(
+      NotificationType.TaskDueSoon,
+      'dueReminderSentAt',
+      { gt: now, lte: new Date(now.getTime() + DUE_SOON_WINDOW_MS) },
+      now,
+    );
+  }
+
+  // e, uma vez, as que passaram do prazo sem serem concluídas
+  sendOverdue(now = new Date()): Promise<number> {
+    return this.send(
+      NotificationType.TaskOverdue,
+      'overdueSentAt',
+      { lte: now, gt: new Date(now.getTime() - OVERDUE_LOOKBACK_MS) },
+      now,
+    );
+  }
+
+  private async send(
+    type: NotificationType,
+    marker: Marker,
+    dueDate: { gt: Date; lte: Date },
+    now: Date,
+  ): Promise<number> {
     const tasks = await this.prisma.task.findMany({
       where: {
         completedAt: null,
-        dueReminderSentAt: null,
-        dueDate: { gt: now, lte: new Date(now.getTime() + DUE_SOON_WINDOW_MS) },
+        [marker]: null,
+        dueDate,
         assignees: { some: {} },
         board: { project: { archived: false } },
       },
-      select: {
-        id: true,
-        title: true,
-        boardId: true,
-        dueDate: true,
-        assignees: { select: { userId: true } },
-        board: {
-          select: {
-            project: {
-              select: { id: true, name: true, organizationId: true },
-            },
-          },
-        },
-      },
+      select: taskSelect,
       take: 500,
     });
 
@@ -46,12 +74,12 @@ export class DueRemindersService {
     for (const task of tasks) {
       // marca antes de avisar: outra instância rodando junto não duplica
       const { count } = await this.prisma.task.updateMany({
-        where: { id: task.id, dueReminderSentAt: null },
-        data: { dueReminderSentAt: now },
+        where: { id: task.id, [marker]: null },
+        data: { [marker]: now },
       });
       if (count === 0) continue;
       this.notifications.notify(
-        NotificationType.TaskDueSoon,
+        type,
         null,
         task.assignees.map((a) => a.userId),
         {
@@ -61,7 +89,7 @@ export class DueRemindersService {
       );
       sent++;
     }
-    if (sent) this.logger.log(`${sent} lembrete(s) de prazo enviados`);
+    if (sent) this.logger.log(`${sent} aviso(s) ${type} enviados`);
     return sent;
   }
 }
