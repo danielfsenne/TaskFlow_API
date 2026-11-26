@@ -119,7 +119,7 @@ API_URL=http://localhost:3100 npm start
 - Os responsáveis recebem aviso quando a tarefa vence nas próximas 24 h e, se ela passar do prazo sem ser concluída, um aviso de atraso (no sino e por e-mail).
 - Projetos arquivados ficam somente leitura; quem está com um quadro do projeto aberto vê a mudança na hora.
 - Login, cadastro e recuperação de senha têm limite de tentativas por IP. Redefinir ou trocar a senha encerra as sessões abertas em outros aparelhos.
-- Fotos de perfil e anexos ficam em `backend/uploads/` ou num bucket S3 (`STORAGE_DRIVER=s3`) . Com S3, os anexos são baixados direto do bucket por links que valem 5 minutos; sem S3, passam pela API. Anexos exigem login e, fora imagens comuns, sempre baixam (nunca abrem no navegador).
+- Fotos de perfil e anexos ficam em `backend/uploads/` ou num bucket S3 (`STORAGE_DRIVER=s3`). Com S3, os anexos são baixados direto do bucket por links que valem 5 minutos; sem S3, passam pela API. Anexos exigem login e, fora imagens comuns, sempre baixam (nunca abrem no navegador).
 - Tema claro, escuro ou igual ao sistema, no menu do usuário (a escolha fica salva no navegador).
 - O quadro é sincronizado ao vivo via Socket.IO entre todos que estão com ele aberto; as notificações chegam pelo sino sem recarregar a página.
 - Dá para rodar várias instâncias da API atrás de um balanceador: o tempo real e o limite de tentativas passam pelo Redis e os arquivos vão para o S3. Se o Redis cair, a API continua no ar e cada instância conta as tentativas na própria memória até ele voltar. Os erros de validação da API vêm em português.
