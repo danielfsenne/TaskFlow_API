@@ -9,6 +9,7 @@ import {
   OnInit,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -66,7 +67,21 @@ export interface TaskDialogData {
   ],
   template: `
     @if (task(); as t) {
-      <div class="flex max-h-[90vh] flex-col">
+      <div
+        class="relative flex max-h-[90vh] flex-col"
+        (dragenter)="dragEnter($event)"
+        (dragover)="dragOver($event)"
+        (dragleave)="dragLeave()"
+        (drop)="drop($event)"
+      >
+        @if (dragging()) {
+          <div
+            class="pointer-events-none absolute inset-2 z-10 flex items-center justify-center rounded-md border-2 border-dashed border-slate-400 bg-white/90 text-sm font-medium text-slate-700"
+            data-testid="drop-overlay"
+          >
+            <mat-icon class="mr-2">upload_file</mat-icon> Solte para anexar
+          </div>
+        }
         <div class="flex items-start gap-2 px-6 pt-5">
           @if (editingTitle()) {
             <input
@@ -455,6 +470,10 @@ export class TaskDialogComponent implements OnInit {
     this.store.tasks().find((t) => t.id === this.data.taskId),
   );
   readonly readOnly = this.store.readOnly;
+  private readonly attachmentsPanel = viewChild(TaskAttachmentsComponent);
+  readonly dragging = signal(false);
+  // dragenter/dragleave disparam a cada filho atravessado
+  private dragDepth = 0;
   readonly columnName = computed(
     () =>
       this.store.columns().find((c) => c.id === this.task()?.columnId)?.name ??
@@ -684,5 +703,36 @@ export class TaskDialogComponent implements OnInit {
     } catch (e) {
       this.ui.error(e);
     }
+  }
+
+  private carriesFiles(e: DragEvent) {
+    return !this.readOnly() && !!e.dataTransfer?.types.includes('Files');
+  }
+
+  dragEnter(e: DragEvent) {
+    if (!this.carriesFiles(e)) return;
+    e.preventDefault();
+    this.dragDepth++;
+    this.dragging.set(true);
+  }
+
+  dragOver(e: DragEvent) {
+    if (!this.carriesFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = 'copy';
+  }
+
+  dragLeave() {
+    if (this.dragDepth === 0) return;
+    if (--this.dragDepth === 0) this.dragging.set(false);
+  }
+
+  drop(e: DragEvent) {
+    if (!this.carriesFiles(e)) return;
+    e.preventDefault();
+    this.dragDepth = 0;
+    this.dragging.set(false);
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (files.length) void this.attachmentsPanel()?.upload(files);
   }
 }

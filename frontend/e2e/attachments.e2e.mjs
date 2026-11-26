@@ -159,6 +159,40 @@ try {
     await cardCount(),
   );
 
+  // arrastar um arquivo para o painel anexa sem passar pelo botão
+  const panel = 'mat-dialog-container .relative';
+  await page.$eval(panel, (el) => {
+    const dt = new DataTransfer();
+    dt.items.add(new File(['arrastado'], 'solto.txt', { type: 'text/plain' }));
+    el.dispatchEvent(
+      new DragEvent('dragenter', { bubbles: true, dataTransfer: dt }),
+    );
+    el.dispatchEvent(
+      new DragEvent('dragover', { bubbles: true, dataTransfer: dt }),
+    );
+  });
+  t.ok(
+    'arrastar mostra a área de soltar',
+    !!(await page
+      .waitForSelector('[data-testid=drop-overlay]')
+      .catch(() => null)),
+  );
+  await page.$eval(panel, (el) => {
+    const dt = new DataTransfer();
+    dt.items.add(new File(['arrastado'], 'solto.txt', { type: 'text/plain' }));
+    el.dispatchEvent(
+      new DragEvent('drop', { bubbles: true, dataTransfer: dt }),
+    );
+  });
+  t.ok(
+    'soltar o arquivo anexa',
+    await waitFor(
+      page,
+      () => !!document.querySelector('[data-attachment="solto.txt"]'),
+    ),
+  );
+  t.ok('a área de soltar some', !(await page.$('[data-testid=drop-overlay]')));
+
   await page.click('[data-testid=history-tab]');
   t.ok(
     'histórico registra os anexos',

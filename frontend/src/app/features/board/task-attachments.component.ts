@@ -176,9 +176,15 @@ export class TaskAttachmentsComponent implements OnInit {
     );
   }
 
-  async onFiles(input: HTMLInputElement) {
+  onFiles(input: HTMLInputElement) {
     const files = [...(input.files ?? [])];
     input.value = '';
+    void this.upload(files);
+  }
+
+  // também chamado ao soltar arquivos sobre o painel da tarefa
+  async upload(files: File[]) {
+    if (this.readOnly() || this.uploading()) return;
     const tooBig = files.filter((f) => f.size > MAX_BYTES);
     if (tooBig.length) {
       this.ui.toast(`${tooBig[0].name} passa de 10 MB.`);
